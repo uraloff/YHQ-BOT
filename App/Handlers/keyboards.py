@@ -1,0 +1,342 @@
+from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
+from aiogram.types import (ReplyKeyboardMarkup, KeyboardButton,
+                           InlineKeyboardMarkup, InlineKeyboardButton)
+
+from App.Database.models import Answer
+
+
+# -----------------------------------------------------------------------------Клиентские клавиатуры------------------------------------------------------------------------------------------
+
+uz_main_menu_kb = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text="Real imtihon 20", callback_data='uz_exam')],
+    [InlineKeyboardButton(text="Imtihon biletlari", callback_data='uz_tickets')],
+    [InlineKeyboardButton(text="Mening statistikam", callback_data='uz_stats')],
+    [InlineKeyboardButton(text="Saqlanganlar", callback_data='uz_saved_questions')],
+    [InlineKeyboardButton(text="Yo'l belgilari", callback_data='uz_road_signs')]
+])
+
+
+uz_exam_kb = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text="Boshladik!", callback_data='uz_start_exam')],
+    [InlineKeyboardButton(text="🏠 Asosiy menyu", callback_data='uz_main_menu')]
+])
+
+
+uz_road_signs_kb = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text="⚠ Ogohlantiruvchi belgilar", callback_data='uz:warning_signs')],
+    [InlineKeyboardButton(text="🔶 Imtiyoz belgilari", callback_data='uz:privilege_signs')],
+    [InlineKeyboardButton(text="⛔ Ta'qiqlovchi belgilar", callback_data='uz:prohibition_signs')],
+    [InlineKeyboardButton(text="⬆ Buyuruvchi belgilar", callback_data='uz:guide_signs')],
+    [InlineKeyboardButton(text="🛣 Axborot-ishora belgilari", callback_data='uz:information_signs')],
+    [InlineKeyboardButton(text="🛃 Servis belgilari", callback_data='uz:service_signs')],
+    [InlineKeyboardButton(text="🔙 Qo'shimcha axborot belgilari", callback_data='uz:additional_information_signs')],
+    [InlineKeyboardButton(text="🏠 Asosiy menyu", callback_data='uz_main_menu')]
+])
+
+
+def sign_nav_kb(current: int, total: int) -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    if current > 0:
+        kb.button(text="⬅", callback_data="prev_sign")
+    if current < total - 1:
+        kb.button(text="➡", callback_data="next_sign")
+    kb.adjust(2)
+    kb.row(InlineKeyboardButton(text="Yo'l belgilari ro'yxatiga qaytish ↩", callback_data="uz_road_signs"))
+    return kb.as_markup()
+
+
+uz_to_main_menu_kb = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text="🏠 Asosiy menyu", callback_data='uz_main_menu')]
+])
+
+
+def generate_ticket_keyboard(tickets: list[int], current_page: int, per_page: int = 10) -> InlineKeyboardMarkup:
+    start = current_page * per_page
+    end = start + per_page
+    page_tickets = tickets[start:end]
+
+    keyboard = []
+
+    # Разбиваем билеты по рядам (по 5 кнопок в ряд)
+    row = []
+    for i, ticket_id in enumerate(page_tickets, start=1):
+        row.append(InlineKeyboardButton(text=str(ticket_id), callback_data=f"ticket_{ticket_id}"))
+        if i % 5 == 0:
+            keyboard.append(row)
+            row = []
+    if row:
+        keyboard.append(row)
+
+    # Стрелки навигации
+    total_pages = (len(tickets) - 1) // per_page
+    nav_buttons = []
+    if current_page > 0:
+        nav_buttons.append(InlineKeyboardButton(text="⬅", callback_data=f"tickets_page_{current_page - 1}"))
+    if current_page < total_pages:
+        nav_buttons.append(InlineKeyboardButton(text="➡", callback_data=f"tickets_page_{current_page + 1}"))
+    if nav_buttons:
+        keyboard.append(nav_buttons)
+
+    # Кнопка "Главное меню"
+    keyboard.append([InlineKeyboardButton(text="🏠 Asosiy menyu", callback_data="uz_main_menu")])
+
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+
+def build_question_keyboard(shuffled_options, mode, position, total_questions, answer: Answer | None = None, session_id: int | None = None, selected_answer: str | None = None):
+    buttons = []
+    control_buttons = []
+
+    if mode.startswith("saved_"):
+        # Показываем сразу правильный ответ
+        correct_answer = mode.split("_")[1]
+        for option in shuffled_options:
+            text = option
+            if option == correct_answer:
+                text += " ✅"
+            buttons.append([InlineKeyboardButton(text=text, callback_data="noop")])  # "noop" чтобы нельзя было нажать
+
+        if position > 0:
+            control_buttons.append(InlineKeyboardButton(text="⬅ Oldingi savol", callback_data=f"saved_question_{position - 1}"))
+
+        if position >= 0 and position < total_questions - 1:
+            control_buttons.append(InlineKeyboardButton(text="Keyingi savol ➡", callback_data=f"saved_question_{position + 1}"))
+
+        if control_buttons:
+            buttons.append(control_buttons)
+
+        buttons.append([InlineKeyboardButton(text="📤 Saqlanganlardan o'chirish", callback_data="remove_saved_question")])
+        buttons.append([InlineKeyboardButton(text="🏠 Asosiy menyu", callback_data=f"uz_main_menu")])
+    else:
+        # Остальные режимы — выбор ответа
+        for i, option in enumerate(shuffled_options):
+            is_selected = option == selected_answer
+            text = f"✅ {option}" if is_selected else option
+            buttons.append([InlineKeyboardButton(text=text, callback_data=f"{mode}_variant_{i}")])
+
+        # Кнопки управления
+        if position > 0:
+            control_buttons.append(InlineKeyboardButton(text="⬅ Oldingi savol", callback_data=f"{mode}_question_{position - 1}"))
+
+        if answer:
+            if position == total_questions - 1:
+                control_buttons.append(InlineKeyboardButton(text="Test natijalari ➡", callback_data=f"{mode}_test_results"))
+            else:
+                control_buttons.append(InlineKeyboardButton(text="Keyingi savol ➡", callback_data=f"{mode}_question_{position + 1}"))
+
+        if control_buttons:
+            buttons.append(control_buttons)
+
+        buttons.append([InlineKeyboardButton(text="📥 Saqlash", callback_data="save_question")])
+        buttons.append([InlineKeyboardButton(text="🏠 Asosiy menyu", callback_data=f"to_main_menu_after_test:{session_id}")])
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def mark_answer_variants_kb(shuffled_options, mode, answer, question, position, session_id, total_questions):
+    buttons = []
+
+    for i, option in enumerate(shuffled_options):
+        text = option
+        if answer:
+            if option == answer.user_answer:
+                text += " ✅" if answer.is_correct else " ❌"
+            elif option == question.correct_answer and not answer.is_correct:
+                text += " ✅"
+
+        buttons.append([InlineKeyboardButton(text=text, callback_data=f"{mode}_variant_{i}")])
+
+    # Кнопки управления (влево / вправо)
+    control_buttons = []
+    if position > 0:
+        control_buttons.append(InlineKeyboardButton(text="⬅ Oldingi savol", callback_data=f"{mode}_question_{position - 1}"))
+
+    if answer:
+        if position == total_questions - 1:  # последний вопрос
+            control_buttons.append(InlineKeyboardButton(text="Test natijalari ➡", callback_data=f"{mode}_test_results"))
+        else:
+            control_buttons.append(InlineKeyboardButton(text="Keyingi savol ➡", callback_data=f"{mode}_question_{position + 1}"))
+
+    if control_buttons:
+        buttons.append(control_buttons)
+            
+    buttons.append([InlineKeyboardButton(text="📥 Saqlash", callback_data="save_question")])
+        
+                
+    buttons.append([
+        InlineKeyboardButton(text="🏠 Asosiy menyu", callback_data=f"to_main_menu_after_test:{session_id}")
+    ])
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+user_question_not_found_kb = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text="Biletlar bo'limiga qaytish ↩", callback_data="back_to_tickets")],
+    [InlineKeyboardButton(text="🏠 Asosiy menyu", callback_data="uz_main_menu")]
+])
+
+
+uz_stats_kb = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text="✏ Xatoliklar ustida ishlash", callback_data="uz_mistakes")],
+    [InlineKeyboardButton(text="🏠 Asosiy menyu", callback_data="uz_main_menu")]
+])
+
+
+uz_pass_exam_again_kb = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text="✅ Ha", callback_data="yes_pass"),
+    InlineKeyboardButton(text="❌ Yo'q", callback_data="no_pass")]
+])
+
+# -----------------------------------------------------------------------------Админские клавиатуры-------------------------------------------------------------------------------------------
+def confirm_admin_kb(user_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="✅ Tasdiqlash", callback_data=f"admin_confirm:{user_id}"),
+             InlineKeyboardButton(text="❌ Bekor qilish", callback_data=f"admin_cancel:{user_id}")]
+    ])
+
+
+admin_menu_kb = ReplyKeyboardMarkup(keyboard=[
+        [KeyboardButton(text="Savol qo'shish")],
+        [KeyboardButton(text="Yo'l belgisini qo'shish")],
+        [KeyboardButton(text="Info komandasini o'zgartirish")]
+    ],
+    resize_keyboard=True
+)
+
+
+admin_to_menu_kb = ReplyKeyboardMarkup(keyboard=[
+        [KeyboardButton(text="Asosiy menyuga qaytish ↩")]
+    ],
+    resize_keyboard=True
+)
+
+
+admin_after_ticket_kb = ReplyKeyboardMarkup(keyboard=[
+        [KeyboardButton(text="Savol qo'shish")],
+        [KeyboardButton(text="Asosiy menyuga qaytish ↩")],
+        [KeyboardButton(text="Info komandasini o'zgartirish")]
+        ],
+    resize_keyboard=True
+)
+
+
+admin_road_signs_kb = ReplyKeyboardMarkup(keyboard=[
+        [KeyboardButton(text="⚠ Ogohlantiruvchi belgilar")],
+        [KeyboardButton(text="🔶 Imtiyoz belgilari")],
+        [KeyboardButton(text="⛔ Ta'qiqlovchi belgilar")],
+        [KeyboardButton(text="⬆ Buyuruvchi belgilar")],
+        [KeyboardButton(text="🛣 Axborot-ishora belgilari")],
+        [KeyboardButton(text="🛃 Servis belgilari")],
+        [KeyboardButton(text="🔙 Qo'shimcha axborot belgilari")],
+        [KeyboardButton(text="❌ Bekor qilish")]
+    ],
+    resize_keyboard=True,
+    input_field_placeholder="Belgi turini tanlang"
+)
+
+
+confirm_kb = ReplyKeyboardMarkup(keyboard=[
+            [KeyboardButton(text="✅ Tasdiqlash"),
+             KeyboardButton(text="❌ Bekor qilish")]
+    ],
+    resize_keyboard=True
+)
+
+
+after_checking_sign_kb = ReplyKeyboardMarkup(keyboard=[
+        [KeyboardButton(text="Belgi qo'shish ➕")],
+        [KeyboardButton(text="Asosiy menyuga qaytish ↩")]
+    ],
+    resize_keyboard=True
+)
+
+
+skip_kb = ReplyKeyboardMarkup(keyboard=[
+        [KeyboardButton(text="O'tkazib yuborish ⏩")]
+    ],
+    resize_keyboard=True
+)
+
+
+def answer_variants_kb(options: list[str]) -> ReplyKeyboardMarkup:
+    kb = ReplyKeyboardBuilder()
+    for i, opt in enumerate(options):
+        kb.button(text=opt)
+    kb.adjust(1)
+    return kb.as_markup(resize_keyboard=True)
+
+
+ticket_not_found_kb = ReplyKeyboardMarkup(keyboard=[
+        [KeyboardButton(text="Bilet qo'shish ➕")],
+        [KeyboardButton(text="Asosiy menyuga qaytish ↩")]
+    ],
+    resize_keyboard=True
+)
+
+
+def answer_variants_kb(options: list[str]) -> ReplyKeyboardMarkup:
+    kb = [[KeyboardButton(text=opt)] for opt in options]
+    return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True, one_time_keyboard=True)
+
+
+def add_first_option_kb(option: list[str]) -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    kb.button(text=option[0], callback_data="first_option")
+
+    kb.adjust(1)
+    return kb.as_markup()
+
+
+def add_second_option_kb(options: list[str]) -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    kb.button(text=options[0], callback_data="first_option")
+    kb.button(text=options[1], callback_data="second_option")
+
+    kb.adjust(1)
+    return kb.as_markup()
+
+
+def add_other_option_kb(options: list[str]) -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    for i, opt in enumerate(options):
+        kb.button(text=opt, callback_data=f"opt_{i}")
+
+    kb.adjust(1)
+    return kb.as_markup()
+
+
+def identify_correct_option_kb(options: list[str], correct_answer: str) -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    for opt in options:
+        label = f"{opt} ✅" if opt == correct_answer else opt
+        kb.button(text=label, callback_data=f"ignore")
+    kb.adjust(1)
+    return kb.as_markup()
+
+
+def confirm_question_kb(options: list[str], correct_answer: str) -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    for opt in options:
+        label = f"{opt} ✅" if opt == correct_answer else opt
+        kb.button(text=label, callback_data=f"loop")
+    kb.button(text="Tasdiqlash ✅", callback_data="confirm_question")
+    kb.button(text="Bekor qilish ❌", callback_data="cancel_question")
+    kb.adjust(*([1] * len(options)), 2)
+    return kb.as_markup()
+
+
+def after_add_question_ikb(options: list[str], correct_answer: str) -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    for opt in options:
+        label = f"{opt} ✅" if opt == correct_answer else opt
+        kb.button(text=label, callback_data=f"loop")
+    kb.adjust(1)
+    return kb.as_markup()
+
+
+after_add_question_kb = ReplyKeyboardMarkup(keyboard=[
+        [KeyboardButton(text="Yana savol qo'shish ➕")],
+        [KeyboardButton(text="Asosiy menyuga qaytish ↩")]
+    ],
+    resize_keyboard=True
+)
