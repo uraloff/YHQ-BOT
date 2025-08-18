@@ -2,18 +2,20 @@ import ssl
 import enum
 from os import getenv
 from datetime import datetime
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 
 from sqlalchemy.dialects.postgresql import JSON, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
 from sqlalchemy.ext.asyncio import AsyncAttrs, create_async_engine, async_sessionmaker
 from sqlalchemy import DateTime, String, BigInteger, ForeignKey, Integer, Enum, Boolean, Text
 
+print("Using .env file:", find_dotenv())
 
 load_dotenv()
 db_url = getenv("DB_URL")
 if not db_url:
     raise RuntimeError("DB_URL not found in environment variables")
+print("Database URL:", db_url)
 
 ssl_context = ssl.create_default_context()
 ssl_context.check_hostname = False
