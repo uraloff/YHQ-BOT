@@ -87,15 +87,30 @@ async def uz_start_exam(callback: CallbackQuery):
         return
     answer = await rq.get_user_answer(session_id, exam_question.id)
 
-    question_text = f"<b>{exam_question.question_number}-savol:</b>\n{exam_question.text}"
+    def format_question_with_options(question_number: int, text: str, options: list[str]) -> str:
+        """
+        Возвращает текст вопроса с F1...Fn перед вариантами.
+        """
+        lines = [f"<b>{question_number}-savol</b>\n\n{text}\n"]
+        for i, opt in enumerate(options, start=1):
+            lines.append(f"F{i}. {opt}")
+            if i < len(options):
+                lines.append("———————————————")
+        lines.append("\n\n@yhq_imtihon_bot")
+        return "\n".join(lines)
+
+    question_text = format_question_with_options(
+        exam_question.question_number,
+        exam_question.text,
+        sq.shuffled_options
+    )
     keyboard = kb.build_question_keyboard(
-        shuffled_options=sq.shuffled_options,
+        shuffled_options=len(sq.shuffled_options),
         mode='exam',
         position=0,
         total_questions=len(exam_questions_list),
         answer=answer,
-        session_id=session_id,
-        selected_answer=sq.selected_answer
+        session_id=session_id
     )
 
     previous_has_photo = callback.message.photo is not None
