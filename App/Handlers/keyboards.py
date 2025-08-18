@@ -84,28 +84,32 @@ def generate_ticket_keyboard(tickets: list[int], current_page: int, per_page: in
 
 
 def build_question_keyboard(total_options: int, mode: str, position: int, total_questions: int, session_id: int):
-    buttons = [
-        InlineKeyboardButton(text=f"F{i+1}", callback_data=f"{mode}_variant_{i+1}_{session_id}_{position}")
-        for i in range(total_options)
-    ]
+    builder = InlineKeyboardBuilder()
 
-    keyboard = InlineKeyboardMarkup(row_width=5)
-    keyboard.add(*buttons)
+    for i in range(total_options):
+        builder.button(
+            text=f"F{i+1}",
+            callback_data=f"{mode}_variant_{i+1}_{session_id}_{position}"
+        )
+
+    builder.adjust(5)
 
     nav_buttons = []
     if position > 0:
         nav_buttons.append(InlineKeyboardButton("⬅", callback_data=f"{mode}_prev_{session_id}_{position}"))
     if position < total_questions - 1:
         nav_buttons.append(InlineKeyboardButton("➡", callback_data=f"{mode}_next_{session_id}_{position}"))
-    if nav_buttons:
-        keyboard.row(*nav_buttons)
 
-    keyboard.row(
+    if nav_buttons:
+        builder.row(*nav_buttons)
+
+    builder.row(
         InlineKeyboardButton("📥 Saqlash", callback_data=f"{mode}_save_{session_id}"),
         InlineKeyboardButton("🏠 Asosiy menyu", callback_data=f"{mode}_menu")
     )
 
-    return keyboard
+    return builder.as_markup()
+
 
 
 def mark_answer_variants_kb(shuffled_options, mode, answer, question, position, session_id, total_questions):
