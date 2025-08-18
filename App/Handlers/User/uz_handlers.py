@@ -105,7 +105,7 @@ async def uz_start_exam(callback: CallbackQuery):
         sq.shuffled_options
     )
     keyboard = kb.build_question_keyboard(
-        shuffled_options=len(sq.shuffled_options),
+        total_options=len(sq.shuffled_options),
         mode='exam',
         position=0,
         total_questions=len(exam_questions_list),
