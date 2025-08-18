@@ -109,7 +109,6 @@ async def uz_start_exam(callback: CallbackQuery):
         mode='exam',
         position=0,
         total_questions=len(exam_questions_list),
-        answer=answer,
         session_id=session_id
     )
 
