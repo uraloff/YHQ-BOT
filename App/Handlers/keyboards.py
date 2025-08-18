@@ -96,16 +96,16 @@ def build_question_keyboard(total_options: int, mode: str, position: int, total_
 
     nav_buttons = []
     if position > 0:
-        nav_buttons.append(InlineKeyboardButton("⬅", callback_data=f"{mode}_prev_{session_id}_{position}"))
+        nav_buttons.append(InlineKeyboardButton(text="⬅ Oldingi savol", callback_data=f"{mode}_prev_{session_id}_{position}"))
     if position < total_questions - 1:
-        nav_buttons.append(InlineKeyboardButton("➡", callback_data=f"{mode}_next_{session_id}_{position}"))
+        nav_buttons.append(InlineKeyboardButton(text="Keyingi savol ➡", callback_data=f"{mode}_next_{session_id}_{position}"))
 
     if nav_buttons:
         builder.row(*nav_buttons)
 
     builder.row(
-        InlineKeyboardButton("📥 Saqlash", callback_data=f"{mode}_save_{session_id}"),
-        InlineKeyboardButton("🏠 Asosiy menyu", callback_data=f"{mode}_menu")
+        InlineKeyboardButton(text="📥 Saqlash", callback_data=f"{mode}_save_{session_id}"),
+        InlineKeyboardButton(text="🏠 Asosiy menyu", callback_data=f"{mode}_menu")
     )
 
     return builder.as_markup()
