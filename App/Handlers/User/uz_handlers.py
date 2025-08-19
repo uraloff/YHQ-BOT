@@ -87,29 +87,22 @@ async def uz_start_exam(callback: CallbackQuery):
         return
     answer = await rq.get_user_answer(session_id, exam_question.id)
 
-    def format_question_with_options(question_number: int, text: str, options: list[str]) -> str:
-        """
-        Возвращает текст вопроса с F1...Fn перед вариантами.
-        """
-        lines = [f"<b>{question_number}-savol</b>\n\n{text}\n"]
-        for i, opt in enumerate(options, start=1):
-            lines.append(f"F{i}. {opt}")
-            if i < len(options):
-                lines.append("———————————————")
-        lines.append("\n\n@yhq_imtihon_bot")
-        return "\n".join(lines)
+    # Формируем текст вопроса
+    lines = [f"<b>{exam_question.question_number}-savol</b>\n\n{exam_question.text}\n"]
+    for i, opt in enumerate(sq.shuffled_options, start=1):
+        lines.append(f"F{i}. {opt}")
+        if i < len(sq.shuffled_options):
+            lines.append("———————————————")
+    lines.append("\n\n@yhq_imtihon_bot")
 
-    question_text = format_question_with_options(
-        exam_question.question_number,
-        exam_question.text,
-        sq.shuffled_options
-    )
+    question_text = "\n".join(lines)
     keyboard = kb.build_question_keyboard(
         total_options=len(sq.shuffled_options),
         mode='exam',
         position=0,
         total_questions=len(exam_questions_list),
-        session_id=session_id
+        session_id=session_id,
+        answer=answer
     )
 
     previous_has_photo = callback.message.photo is not None
@@ -192,13 +185,13 @@ async def exam_variant_selected(callback: CallbackQuery):
     
     if answer.is_correct:
         await rq.increment_correct_count(cache["session_id"])
-        await callback.answer(text="✅ To'g'ri javob berdingiz!", show_alert=True)
+        await callback.answer(text="✅ To'g'ri javob berdingiz!")
         await callback.message.edit_reply_markup(reply_markup=kb.mark_answer_variants_kb(sq.shuffled_options, 'exam', answer, exam_question, position, cache["session_id"], len(exam_questions_list)))
     elif not answer.is_correct:
         await rq.add_mistake(callback.from_user.id, exam_question.id)
         await rq.increment_incorrect_count(cache["session_id"])
         await rq.decrease_exam_chance(cache["session_id"])
-        await callback.answer(text="❌ Noto'g'ri javob berdingiz!", show_alert=True)
+        await callback.answer(text="❌ Noto'g'ri javob berdingiz!")
         await callback.message.edit_reply_markup(reply_markup=kb.mark_answer_variants_kb(sq.shuffled_options, 'exam', answer, exam_question, position, cache["session_id"], len(exam_questions_list)))
     else:
         await rq.end_session(int(cache["session_id"]))
@@ -264,15 +257,22 @@ async def exam_navigate_question(callback: CallbackQuery):
 
     cache["question_id"] = exam_question.id
     
-    question_text = f"<b>{exam_question.question_number}-savol:</b>\n{exam_question.text}"
+    # Формируем текст вопроса
+    lines = [f"<b>{exam_question.question_number}-savol</b>\n\n{exam_question.text}\n"]
+    for i, opt in enumerate(sq.shuffled_options, start=1):
+        lines.append(f"F{i}. {opt}")
+        if i < len(sq.shuffled_options):
+            lines.append("———————————————")
+    lines.append("\n\n@yhq_imtihon_bot")
+
+    question_text = "\n".join(lines)
     keyboard = kb.build_question_keyboard(
-        shuffled_options=sq.shuffled_options,
+        total_options=len(sq.shuffled_options),
         mode='exam',
         position=position,
         total_questions=len(exam_questions_list),
-        answer=answer,
         session_id=session_id,
-        selected_answer=sq.selected_answer
+        answer=answer
     )
 
     new_has_photo = exam_question.photo_id != '-'
@@ -373,15 +373,22 @@ async def ticket_selected(callback: CallbackQuery):
     question = await rq.get_question(sq.question_id)
     answer = await rq.get_user_answer(session_id, question.id)
 
-    question_text = f"<b>{question.question_number}-savol:</b>\n{question.text}"
+    # Формируем текст вопроса
+    lines = [f"<b>{question.question_number}-savol</b>\n\n{question.text}\n"]
+    for i, opt in enumerate(sq.shuffled_options, start=1):
+        lines.append(f"F{i}. {opt}")
+        if i < len(sq.shuffled_options):
+            lines.append("———————————————")
+    lines.append("\n\n@yhq_imtihon_bot")
+
+    question_text = "\n".join(lines)
     keyboard = kb.build_question_keyboard(
-        shuffled_options=sq.shuffled_options,
+        total_options=len(sq.shuffled_options),
         mode='ticket',
         position=0,
         total_questions=len(questions_list),
-        answer=answer,
         session_id=session_id,
-        selected_answer=sq.selected_answer
+        answer=answer
     )
 
     previous_has_photo = callback.message.photo is not None
@@ -466,12 +473,12 @@ async def ticket_variant_selected(callback: CallbackQuery):
 
     if answer.is_correct:
         await rq.increment_correct_count(cache["session_id"])
-        await callback.answer(text="✅ To'g'ri javob berdingiz!", show_alert=True)
+        await callback.answer(text="✅ To'g'ri javob berdingiz!")
         await callback.message.edit_reply_markup(reply_markup=kb.mark_answer_variants_kb(sq.shuffled_options, 'ticket', answer, question, position, cache["session_id"], len(questions_list)))
     elif not answer.is_correct:
         await rq.add_mistake(callback.from_user.id, question.id)
         await rq.increment_incorrect_count(cache["session_id"])
-        await callback.answer(text="❌ Noto'g'ri javob berdingiz!", show_alert=True)
+        await callback.answer(text="❌ Noto'g'ri javob berdingiz!")
         await callback.message.edit_reply_markup(reply_markup=kb.mark_answer_variants_kb(sq.shuffled_options, 'ticket', answer, question, position, cache["session_id"], len(questions_list)))
     else:
         await rq.end_session(int(cache["session_id"]))
@@ -528,15 +535,22 @@ async def ticket_navigate_question(callback: CallbackQuery):
 
     cache["question_id"] = question.id
     
-    question_text = f"<b>{question.question_number}-savol:</b>\n{question.text}"
+    # Формируем текст вопроса
+    lines = [f"<b>{question.question_number}-savol</b>\n\n{question.text}\n"]
+    for i, opt in enumerate(sq.shuffled_options, start=1):
+        lines.append(f"F{i}. {opt}")
+        if i < len(sq.shuffled_options):
+            lines.append("———————————————")
+    lines.append("\n\n@yhq_imtihon_bot")
+
+    question_text = "\n".join(lines)
     keyboard = kb.build_question_keyboard(
-        shuffled_options=sq.shuffled_options,
+        total_options=len(sq.shuffled_options),
         mode='ticket',
         position=position,
         total_questions=len(questions_list),
-        answer=answer,
         session_id=session_id,
-        selected_answer=sq.selected_answer
+        answer=answer
     )
 
     new_has_photo = question.photo_id != '-'
@@ -651,15 +665,22 @@ async def uz_fix_mistakes(callback: CallbackQuery):
         return
     answer = await rq.get_user_answer(session_id, mistake.id)
 
-    question_text = f"<b>{mistake.question_number}-savol:</b>\n{mistake.text}"
+    # Формируем текст вопроса
+    lines = [f"<b>{mistake.question_number}-savol</b>\n\n{mistake.text}\n"]
+    for i, opt in enumerate(sq.shuffled_options, start=1):
+        lines.append(f"F{i}. {opt}")
+        if i < len(sq.shuffled_options):
+            lines.append("———————————————")
+    lines.append("\n\n@yhq_imtihon_bot")
+
+    question_text = "\n".join(lines)
     keyboard = kb.build_question_keyboard(
-        shuffled_options=sq.shuffled_options,
+        total_options=len(sq.shuffled_options),
         mode='mistakes',
         position=0,
         total_questions=len(mistakes_list),
-        answer=answer,
         session_id=session_id,
-        selected_answer=sq.selected_answer
+        answer=answer
     )
     
     previous_has_photo = callback.message.photo is not None
@@ -804,15 +825,22 @@ async def mistakes_navigate_question(callback: CallbackQuery):
 
     cache["question_id"] = mistake.id
 
-    question_text = f"<b>{mistake.question_number}-savol:</b>\n{mistake.text}"
+    # Формируем текст вопроса
+    lines = [f"<b>{mistake.question_number}-savol</b>\n\n{mistake.text}\n"]
+    for i, opt in enumerate(sq.shuffled_options, start=1):
+        lines.append(f"F{i}. {opt}")
+        if i < len(sq.shuffled_options):
+            lines.append("———————————————")
+    lines.append("\n\n@yhq_imtihon_bot")
+
+    question_text = "\n".join(lines)
     keyboard = kb.build_question_keyboard(
-        shuffled_options=sq.shuffled_options,
+        total_options=len(sq.shuffled_options),
         mode='mistakes',
         position=position,
         total_questions=len(mistakes_list),
-        answer=answer,
         session_id=session_id,
-        selected_answer=sq.selected_answer
+        answer=answer
     )
 
     new_has_photo = mistake.photo_id != '-'
@@ -884,10 +912,22 @@ async def uz_btn_saved_questions(callback: CallbackQuery):
         return
 
     question = questions_list[0]
-    question_text = f"<b>{question.question_number}-savol:</b>\n{question.text}"
+
+    # Формируем текст вопроса
+    correct_index: int
+    lines = [f"<b>{question.question_number}-savol</b>\n\n{question.text}\n"]
+    for i, opt in enumerate(question.options):
+        lines.append(f"F{i+1}. {opt}")
+        if opt == question.correct_answer:
+            correct_index = i
+        if i < len(question.options):
+            lines.append("———————————————")
+    lines.append("\n\n@yhq_imtihon_bot")
+
+    question_text = "\n".join(lines)
     keyboard = kb.build_question_keyboard(
-        shuffled_options=question.options,
-        mode=f'saved_{question.correct_answer}',
+        total_options=len(question.options),
+        mode=f'saved_{correct_index}',
         position=0,
         total_questions=len(questions_list)
     )
@@ -953,10 +993,22 @@ async def saved_navigate_question(callback: CallbackQuery):
             return
 
     question = questions_list[position]
-    question_text = f"<b>{question.question_number}-savol:</b>\n{question.text}"
+    
+    # Формируем текст вопроса
+    correct_index: int
+    lines = [f"<b>{question.question_number}-savol</b>\n\n{question.text}\n"]
+    for i, opt in enumerate(question.options):
+        lines.append(f"F{i+1}. {opt}")
+        if opt == question.correct_answer:
+            correct_index = i
+        if i < len(question.options):
+            lines.append("———————————————")
+    lines.append("\n\n@yhq_imtihon_bot")
+
+    question_text = "\n".join(lines)
     keyboard = kb.build_question_keyboard(
-        shuffled_options=question.options,
-        mode=f'saved_{question.correct_answer}',
+        total_options=len(question.options),
+        mode=f'saved_{correct_index}',
         position=position,
         total_questions=len(questions_list)
     )
@@ -1033,16 +1085,26 @@ async def delete_saved_question(callback: CallbackQuery):
 
         new_question = updated_list[position]
 
+        previous_has_photo = callback.message.photo is not None
+        new_has_photo = new_question.photo_id != '-'
+        # Формируем текст вопроса
+        correct_index: int
+        lines = [f"<b>{new_question.question_number}-savol</b>\n\n{new_question.text}\n"]
+        for i, opt in enumerate(new_question.options):
+            lines.append(f"F{i+1}. {opt}")
+            if opt == new_question.correct_answer:
+                correct_index = i
+            if i < len(new_question.options):
+                lines.append("———————————————")
+        lines.append("\n\n@yhq_imtihon_bot")
+
+        new_question_text = "\n".join(lines)
         keyboard = kb.build_question_keyboard(
-            shuffled_options=new_question.options,
-            mode=f"saved_{new_question.correct_answer}",
+            total_options=len(new_question.options),
+            mode=f"saved_{correct_index}",
             position=position,
             total_questions=len(updated_list)
         )
-
-        previous_has_photo = callback.message.photo is not None
-        new_has_photo = new_question.photo_id != '-'
-        new_question_text = f"<b>{new_question.question_number}-savol:</b>\n{new_question.text}"
 
         try:
             if not previous_has_photo and not new_has_photo:

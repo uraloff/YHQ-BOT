@@ -83,31 +83,65 @@ def generate_ticket_keyboard(tickets: list[int], current_page: int, per_page: in
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
-def build_question_keyboard(total_options: int, mode: str, position: int, total_questions: int, session_id: int):
+def build_question_keyboard(total_options: int, mode: str, position: int, total_questions: int, session_id: int | None = None, answer: Answer | None = None) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
 
-    for i in range(total_options):
-        builder.button(
-            text=f"F{i+1}",
-            callback_data=f"{mode}_variant_{i+1}_{session_id}_{position}"
-        )
+    if mode.startswith("saved_"):
+        correct_index = int(mode.split("_")[1]) - 1
+        for i in range(total_options):
+            text = f"F{i+1}"
+            if i == correct_index:
+                text += " ✅"
+            builder.button(
+                text=text,
+                callback_data="noop"
+            )
+        builder.adjust(5)
 
-    builder.adjust(5)
+        nav_buttons = []
+        if position > 0:
+            nav_buttons.append(
+                InlineKeyboardButton(
+                    text="⬅ Oldingi savol",
+                    callback_data=f"saved_question_{position - 1}"
+                )
+            )
+        if position < total_questions - 1:
+            nav_buttons.append(
+                InlineKeyboardButton(
+                    text="Keyingi savol ➡",
+                    callback_data=f"saved_question_{position + 1}"
+                )
+            )
+        if nav_buttons:
+            builder.row(*nav_buttons)
 
-    nav_buttons = []
-    if position > 0:
-        nav_buttons.append(InlineKeyboardButton(text="⬅ Oldingi savol", callback_data=f"{mode}_prev_{session_id}_{position}"))
-    if position < total_questions - 1:
-        nav_buttons.append(InlineKeyboardButton(text="Keyingi savol ➡", callback_data=f"{mode}_next_{session_id}_{position}"))
+        builder.row(InlineKeyboardButton(text="📤 Saqlanganlardan o'chirish", callback_data=f"remove_saved_question:{position}"))
+        builder.row(InlineKeyboardButton(text="🏠 Asosiy menyu", callback_data=f"uz_main_menu"))
+    else:
+        for i in range(total_options):
+            builder.button(
+                text=f"F{i+1}",
+                callback_data=f"{mode}_variant_{i}"
+            )
 
-    if nav_buttons:
-        builder.row(*nav_buttons)
+        builder.adjust(5)
 
-    builder.row(
-        InlineKeyboardButton(text="📥 Saqlash", callback_data=f"{mode}_save_{session_id}"),
-        InlineKeyboardButton(text="🏠 Asosiy menyu", callback_data=f"{mode}_menu")
-    )
+        nav_buttons = []
+        if position > 0:
+            nav_buttons.append(InlineKeyboardButton(text="⬅ Oldingi savol", callback_data=f"{mode}_question_{position - 1}"))
+        if answer:
+            if position == total_questions - 1:
+                nav_buttons.append(InlineKeyboardButton(text="Test natijalari ➡", callback_data=f"{mode}_test_results"))
+            else:    
+                nav_buttons.append(InlineKeyboardButton(text="Keyingi savol ➡", callback_data=f"{mode}_question_{position + 1}"))
 
+        if nav_buttons:
+            builder.row(*nav_buttons)
+
+        builder.row(InlineKeyboardButton(text="📥 Saqlash", callback_data=f"save_question"),)
+        builder.row(InlineKeyboardButton(text="🏠 Asosiy menyu", callback_data=f"to_main_menu_after_test:{session_id}"))
+    
     return builder.as_markup()
 
 
@@ -122,8 +156,6 @@ def mark_answer_variants_kb(shuffled_options, mode, answer, question, position, 
                 text += " ✅" if answer.is_correct else " ❌"
             elif option == question.correct_answer and not answer.is_correct:
                 text += " ✅"
-
-        buttons.append([InlineKeyboardButton(text=text, callback_data=f"{mode}_variant_{i}")])
 
     # Кнопки управления (влево / вправо)
     control_buttons = []
