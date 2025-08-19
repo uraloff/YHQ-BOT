@@ -172,8 +172,8 @@ def mark_answer_variants_kb(shuffled_options, mode, answer, position, session_id
     if control_buttons:
         builder.row(*control_buttons)
             
-    builder.row([InlineKeyboardButton(text="📥 Saqlash", callback_data="save_question")])
-    builder.row([InlineKeyboardButton(text="🏠 Asosiy menyu", callback_data=f"to_main_menu_after_test:{session_id}")])
+    builder.row(InlineKeyboardButton(text="📥 Saqlash", callback_data="save_question"))
+    builder.row(InlineKeyboardButton(text="🏠 Asosiy menyu", callback_data=f"to_main_menu_after_test:{session_id}"))
 
     return builder.as_markup()
 
