@@ -155,6 +155,10 @@ def mark_answer_variants_kb(shuffled_options, mode, answer, position, session_id
                 text += " ✅" if answer.is_correct else " ❌"
             elif not answer.is_correct and i == correct_index:
                 text += " ✅"
+        builder.button(
+            text=text,
+            callback_data=f"{mode}_variant_{i}"
+        )
     builder.adjust(5)
 
     # Кнопки управления (влево / вправо)
