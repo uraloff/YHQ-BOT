@@ -145,16 +145,18 @@ def build_question_keyboard(total_options: int, mode: str, position: int, total_
 
 
 
-def mark_answer_variants_kb(shuffled_options, mode, answer, question, position, session_id, total_questions, correct_index) -> InlineKeyboardMarkup:
-    buttons = []
+def mark_answer_variants_kb(shuffled_options, mode, answer, position, session_id, total_questions, correct_index) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
 
-    for i, option in enumerate(shuffled_options):
-        text = option
-        if answer:
-            if option == answer.user_answer:
-                text += " ✅" if answer.is_correct else " ❌"
-            elif option == question.correct_answer and not answer.is_correct:
-                text += " ✅"
+    for i in range(len(shuffled_options)):
+        text = f"F{i+1}"
+        if i == correct_index:
+            text += " ✅"
+        builder.button(
+            text=text,
+            callback_data=f"{mode}_variant_{i}"
+        )
+    builder.adjust(5)
 
     # Кнопки управления (влево / вправо)
     control_buttons = []
@@ -168,16 +170,12 @@ def mark_answer_variants_kb(shuffled_options, mode, answer, question, position, 
             control_buttons.append(InlineKeyboardButton(text="Keyingi savol ➡", callback_data=f"{mode}_question_{position + 1}"))
 
     if control_buttons:
-        buttons.append(control_buttons)
+        builder.row(*control_buttons)
             
-    buttons.append([InlineKeyboardButton(text="📥 Saqlash", callback_data="save_question")])
-        
-                
-    buttons.append([
-        InlineKeyboardButton(text="🏠 Asosiy menyu", callback_data=f"to_main_menu_after_test:{session_id}")
-    ])
+    builder.row([InlineKeyboardButton(text="📥 Saqlash", callback_data="save_question")])
+    builder.row([InlineKeyboardButton(text="🏠 Asosiy menyu", callback_data=f"to_main_menu_after_test:{session_id}")])
 
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
+    return builder.as_markup()
 
 
 user_question_not_found_kb = InlineKeyboardMarkup(inline_keyboard=[

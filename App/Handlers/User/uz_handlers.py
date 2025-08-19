@@ -88,7 +88,7 @@ async def uz_start_exam(callback: CallbackQuery):
     answer = await rq.get_user_answer(session_id, exam_question.id)
 
     # Формируем текст вопроса
-    lines = [f"<b>{exam_question.question_number}-savol</b>\n\n{exam_question.text}\n"]
+    lines = [f"<b>{exam_question.question_number}-savol</b>\n\n{exam_question.text}\n\n"]
     for i, opt in enumerate(sq.shuffled_options, start=1):
         lines.append(f"F{i}. {opt}")
         if i < len(sq.shuffled_options):
@@ -184,20 +184,20 @@ async def exam_variant_selected(callback: CallbackQuery):
     answer = await rq.get_user_answer(cache["session_id"], exam_question.id)
     
     correct_index: int
-    for i, opt in enumerate(exam_question.options):
+    for i, opt in enumerate(sq.shuffled_options):
         if opt == exam_question.correct_answer:
             correct_index = i
 
     if answer.is_correct:
         await rq.increment_correct_count(cache["session_id"])
         await callback.answer(text="✅ To'g'ri javob berdingiz!")
-        await callback.message.edit_reply_markup(reply_markup=kb.mark_answer_variants_kb(sq.shuffled_options, 'exam', answer, exam_question, position, cache["session_id"], len(exam_questions_list), correct_index))
+        await callback.message.edit_reply_markup(reply_markup=kb.mark_answer_variants_kb(sq.shuffled_options, 'exam', answer, position, cache["session_id"], len(exam_questions_list), correct_index))
     elif not answer.is_correct:
         await rq.add_mistake(callback.from_user.id, exam_question.id)
         await rq.increment_incorrect_count(cache["session_id"])
         await rq.decrease_exam_chance(cache["session_id"])
         await callback.answer(text="❌ Noto'g'ri javob berdingiz!")
-        await callback.message.edit_reply_markup(reply_markup=kb.mark_answer_variants_kb(sq.shuffled_options, 'exam', answer, exam_question, position, cache["session_id"], len(exam_questions_list), correct_index))
+        await callback.message.edit_reply_markup(reply_markup=kb.mark_answer_variants_kb(sq.shuffled_options, 'exam', answer, position, cache["session_id"], len(exam_questions_list), correct_index))
     else:
         await rq.end_session(int(cache["session_id"]))
         await callback.answer(text="⚠ No'malum xatolik yuz berdi. Iltimos keyinroq qaytadan urinib ko'ring", show_alert=True)
@@ -263,7 +263,7 @@ async def exam_navigate_question(callback: CallbackQuery):
     cache["question_id"] = exam_question.id
     
     # Формируем текст вопроса
-    lines = [f"<b>{exam_question.question_number}-savol</b>\n\n{exam_question.text}\n"]
+    lines = [f"<b>{exam_question.question_number}-savol</b>\n\n{exam_question.text}\n\n"]
     for i, opt in enumerate(sq.shuffled_options, start=1):
         lines.append(f"F{i}. {opt}")
         if i < len(sq.shuffled_options):
@@ -379,7 +379,7 @@ async def ticket_selected(callback: CallbackQuery):
     answer = await rq.get_user_answer(session_id, question.id)
 
     # Формируем текст вопроса
-    lines = [f"<b>{question.question_number}-savol</b>\n\n{question.text}\n"]
+    lines = [f"<b>{question.question_number}-savol</b>\n\n{question.text}\n\n"]
     for i, opt in enumerate(sq.shuffled_options, start=1):
         lines.append(f"F{i}. {opt}")
         if i < len(sq.shuffled_options):
@@ -477,19 +477,19 @@ async def ticket_variant_selected(callback: CallbackQuery):
     answer = await rq.get_user_answer(cache["session_id"], question.id)
 
     correct_index: int
-    for i, opt in enumerate(question.options):
+    for i, opt in enumerate(sq.shuffled_options):
         if opt == question.correct_answer:
             correct_index = i
 
     if answer.is_correct:
         await rq.increment_correct_count(cache["session_id"])
         await callback.answer(text="✅ To'g'ri javob berdingiz!")
-        await callback.message.edit_reply_markup(reply_markup=kb.mark_answer_variants_kb(sq.shuffled_options, 'ticket', answer, question, position, cache["session_id"], len(questions_list), correct_index))
+        await callback.message.edit_reply_markup(reply_markup=kb.mark_answer_variants_kb(sq.shuffled_options, 'ticket', answer, position, cache["session_id"], len(questions_list), correct_index))
     elif not answer.is_correct:
         await rq.add_mistake(callback.from_user.id, question.id)
         await rq.increment_incorrect_count(cache["session_id"])
         await callback.answer(text="❌ Noto'g'ri javob berdingiz!")
-        await callback.message.edit_reply_markup(reply_markup=kb.mark_answer_variants_kb(sq.shuffled_options, 'ticket', answer, question, position, cache["session_id"], len(questions_list), correct_index))
+        await callback.message.edit_reply_markup(reply_markup=kb.mark_answer_variants_kb(sq.shuffled_options, 'ticket', answer, position, cache["session_id"], len(questions_list), correct_index))
     else:
         await rq.end_session(int(cache["session_id"]))
         await callback.answer(text="⚠ No'malum xatolik yuz berdi. Iltimos keyinroq qaytadan urinib ko'ring", show_alert=True)
@@ -546,7 +546,7 @@ async def ticket_navigate_question(callback: CallbackQuery):
     cache["question_id"] = question.id
     
     # Формируем текст вопроса
-    lines = [f"<b>{question.question_number}-savol</b>\n\n{question.text}\n"]
+    lines = [f"<b>{question.question_number}-savol</b>\n\n{question.text}\n\n"]
     for i, opt in enumerate(sq.shuffled_options, start=1):
         lines.append(f"F{i}. {opt}")
         if i < len(sq.shuffled_options):
@@ -676,7 +676,7 @@ async def uz_fix_mistakes(callback: CallbackQuery):
     answer = await rq.get_user_answer(session_id, mistake.id)
 
     # Формируем текст вопроса
-    lines = [f"<b>{mistake.question_number}-savol</b>\n\n{mistake.text}\n"]
+    lines = [f"<b>{mistake.question_number}-savol</b>\n\n{mistake.text}\n\n"]
     for i, opt in enumerate(sq.shuffled_options, start=1):
         lines.append(f"F{i}. {opt}")
         if i < len(sq.shuffled_options):
@@ -772,7 +772,7 @@ async def mistakes_variant_selected(callback: CallbackQuery):
     answer = await rq.get_user_answer(cache["session_id"], mistake.id)
 
     correct_index: int
-    for i, opt in enumerate(mistake.options):
+    for i, opt in enumerate(sq.shuffled_options):
         if opt == mistake.correct_answer:
             correct_index = i
 
@@ -780,11 +780,11 @@ async def mistakes_variant_selected(callback: CallbackQuery):
         await rq.increment_correct_count(cache["session_id"])
         await rq.mark_mistake_ready_for_delete(callback.from_user.id, mistake.id)
         await callback.answer(text="✅ To'g'ri javob berdingiz!")
-        await callback.message.edit_reply_markup(reply_markup=kb.mark_answer_variants_kb(sq.shuffled_options, 'mistakes', answer, mistake, position, cache["session_id"], len(mistakes_list), correct_index))
+        await callback.message.edit_reply_markup(reply_markup=kb.mark_answer_variants_kb(sq.shuffled_options, 'mistakes', answer, position, cache["session_id"], len(mistakes_list), correct_index))
     elif not answer.is_correct:
         await rq.increment_incorrect_count(cache["session_id"])
         await callback.answer(text="❌ Noto'g'ri javob berdingiz!")
-        await callback.message.edit_reply_markup(reply_markup=kb.mark_answer_variants_kb(sq.shuffled_options, 'mistakes', answer, mistake, position, cache["session_id"], len(mistakes_list), correct_index))
+        await callback.message.edit_reply_markup(reply_markup=kb.mark_answer_variants_kb(sq.shuffled_options, 'mistakes', answer, position, cache["session_id"], len(mistakes_list), correct_index))
     else:
         await rq.end_session(int(cache["session_id"]), callback.from_user.id)
         await callback.answer(text="⚠ No'malum xatolik yuz berdi. Iltimos keyinroq qaytadan urinib ko'ring", show_alert=True)
@@ -841,7 +841,7 @@ async def mistakes_navigate_question(callback: CallbackQuery):
     cache["question_id"] = mistake.id
 
     # Формируем текст вопроса
-    lines = [f"<b>{mistake.question_number}-savol</b>\n\n{mistake.text}\n"]
+    lines = [f"<b>{mistake.question_number}-savol</b>\n\n{mistake.text}\n\n"]
     for i, opt in enumerate(sq.shuffled_options, start=1):
         lines.append(f"F{i}. {opt}")
         if i < len(sq.shuffled_options):
