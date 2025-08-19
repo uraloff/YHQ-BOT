@@ -87,7 +87,7 @@ def build_question_keyboard(total_options: int, mode: str, position: int, total_
     builder = InlineKeyboardBuilder()
 
     if mode.startswith("saved_"):
-        correct_index = int(mode.split("_")[1]) - 1
+        correct_index = int(mode.split("_")[-1])
         for i in range(total_options):
             text = f"F{i+1}"
             if i == correct_index:
@@ -116,7 +116,7 @@ def build_question_keyboard(total_options: int, mode: str, position: int, total_
         if nav_buttons:
             builder.row(*nav_buttons)
 
-        builder.row(InlineKeyboardButton(text="📤 Saqlanganlardan o'chirish", callback_data=f"remove_saved_question:{position}"))
+        builder.row(InlineKeyboardButton(text="📤 Saqlanganlardan o'chirish", callback_data=f"remove_saved_question"))
         builder.row(InlineKeyboardButton(text="🏠 Asosiy menyu", callback_data=f"uz_main_menu"))
     else:
         for i in range(total_options):
@@ -124,7 +124,6 @@ def build_question_keyboard(total_options: int, mode: str, position: int, total_
                 text=f"F{i+1}",
                 callback_data=f"{mode}_variant_{i}"
             )
-
         builder.adjust(5)
 
         nav_buttons = []
@@ -146,7 +145,7 @@ def build_question_keyboard(total_options: int, mode: str, position: int, total_
 
 
 
-def mark_answer_variants_kb(shuffled_options, mode, answer, question, position, session_id, total_questions):
+def mark_answer_variants_kb(shuffled_options, mode, answer, question, position, session_id, total_questions, correct_index) -> InlineKeyboardMarkup:
     buttons = []
 
     for i, option in enumerate(shuffled_options):

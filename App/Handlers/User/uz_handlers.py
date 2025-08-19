@@ -183,16 +183,21 @@ async def exam_variant_selected(callback: CallbackQuery):
     
     answer = await rq.get_user_answer(cache["session_id"], exam_question.id)
     
+    correct_index: int
+    for i, opt in enumerate(exam_question.options):
+        if opt == exam_question.correct_answer:
+            correct_index = i
+
     if answer.is_correct:
         await rq.increment_correct_count(cache["session_id"])
         await callback.answer(text="✅ To'g'ri javob berdingiz!")
-        await callback.message.edit_reply_markup(reply_markup=kb.mark_answer_variants_kb(sq.shuffled_options, 'exam', answer, exam_question, position, cache["session_id"], len(exam_questions_list)))
+        await callback.message.edit_reply_markup(reply_markup=kb.mark_answer_variants_kb(sq.shuffled_options, 'exam', answer, exam_question, position, cache["session_id"], len(exam_questions_list), correct_index))
     elif not answer.is_correct:
         await rq.add_mistake(callback.from_user.id, exam_question.id)
         await rq.increment_incorrect_count(cache["session_id"])
         await rq.decrease_exam_chance(cache["session_id"])
         await callback.answer(text="❌ Noto'g'ri javob berdingiz!")
-        await callback.message.edit_reply_markup(reply_markup=kb.mark_answer_variants_kb(sq.shuffled_options, 'exam', answer, exam_question, position, cache["session_id"], len(exam_questions_list)))
+        await callback.message.edit_reply_markup(reply_markup=kb.mark_answer_variants_kb(sq.shuffled_options, 'exam', answer, exam_question, position, cache["session_id"], len(exam_questions_list), correct_index))
     else:
         await rq.end_session(int(cache["session_id"]))
         await callback.answer(text="⚠ No'malum xatolik yuz berdi. Iltimos keyinroq qaytadan urinib ko'ring", show_alert=True)
@@ -471,15 +476,20 @@ async def ticket_variant_selected(callback: CallbackQuery):
     
     answer = await rq.get_user_answer(cache["session_id"], question.id)
 
+    correct_index: int
+    for i, opt in enumerate(question.options):
+        if opt == question.correct_answer:
+            correct_index = i
+
     if answer.is_correct:
         await rq.increment_correct_count(cache["session_id"])
         await callback.answer(text="✅ To'g'ri javob berdingiz!")
-        await callback.message.edit_reply_markup(reply_markup=kb.mark_answer_variants_kb(sq.shuffled_options, 'ticket', answer, question, position, cache["session_id"], len(questions_list)))
+        await callback.message.edit_reply_markup(reply_markup=kb.mark_answer_variants_kb(sq.shuffled_options, 'ticket', answer, question, position, cache["session_id"], len(questions_list), correct_index))
     elif not answer.is_correct:
         await rq.add_mistake(callback.from_user.id, question.id)
         await rq.increment_incorrect_count(cache["session_id"])
         await callback.answer(text="❌ Noto'g'ri javob berdingiz!")
-        await callback.message.edit_reply_markup(reply_markup=kb.mark_answer_variants_kb(sq.shuffled_options, 'ticket', answer, question, position, cache["session_id"], len(questions_list)))
+        await callback.message.edit_reply_markup(reply_markup=kb.mark_answer_variants_kb(sq.shuffled_options, 'ticket', answer, question, position, cache["session_id"], len(questions_list), correct_index))
     else:
         await rq.end_session(int(cache["session_id"]))
         await callback.answer(text="⚠ No'malum xatolik yuz berdi. Iltimos keyinroq qaytadan urinib ko'ring", show_alert=True)
@@ -761,15 +771,20 @@ async def mistakes_variant_selected(callback: CallbackQuery):
     
     answer = await rq.get_user_answer(cache["session_id"], mistake.id)
 
+    correct_index: int
+    for i, opt in enumerate(mistake.options):
+        if opt == mistake.correct_answer:
+            correct_index = i
+
     if answer.is_correct:
         await rq.increment_correct_count(cache["session_id"])
         await rq.mark_mistake_ready_for_delete(callback.from_user.id, mistake.id)
-        await callback.answer(text="✅ To'g'ri javob berdingiz!", show_alert=True)
-        await callback.message.edit_reply_markup(reply_markup=kb.mark_answer_variants_kb(sq.shuffled_options, 'mistakes', answer, mistake, position, cache["session_id"], len(mistakes_list)))
+        await callback.answer(text="✅ To'g'ri javob berdingiz!")
+        await callback.message.edit_reply_markup(reply_markup=kb.mark_answer_variants_kb(sq.shuffled_options, 'mistakes', answer, mistake, position, cache["session_id"], len(mistakes_list), correct_index))
     elif not answer.is_correct:
         await rq.increment_incorrect_count(cache["session_id"])
-        await callback.answer(text="❌ Noto'g'ri javob berdingiz!", show_alert=True)
-        await callback.message.edit_reply_markup(reply_markup=kb.mark_answer_variants_kb(sq.shuffled_options, 'mistakes', answer, mistake, position, cache["session_id"], len(mistakes_list)))
+        await callback.answer(text="❌ Noto'g'ri javob berdingiz!")
+        await callback.message.edit_reply_markup(reply_markup=kb.mark_answer_variants_kb(sq.shuffled_options, 'mistakes', answer, mistake, position, cache["session_id"], len(mistakes_list), correct_index))
     else:
         await rq.end_session(int(cache["session_id"]), callback.from_user.id)
         await callback.answer(text="⚠ No'malum xatolik yuz berdi. Iltimos keyinroq qaytadan urinib ko'ring", show_alert=True)
@@ -915,12 +930,12 @@ async def uz_btn_saved_questions(callback: CallbackQuery):
 
     # Формируем текст вопроса
     correct_index: int
-    lines = [f"<b>{question.question_number}-savol</b>\n\n{question.text}\n"]
+    lines = [f"<b>{question.question_number}-savol</b>\n\n{question.text}\n\n"]
     for i, opt in enumerate(question.options):
         lines.append(f"F{i+1}. {opt}")
         if opt == question.correct_answer:
             correct_index = i
-        if i < len(question.options):
+        if i < (len(question.options) - 1):
             lines.append("———————————————")
     lines.append("\n\n@yhq_imtihon_bot")
 
@@ -996,12 +1011,12 @@ async def saved_navigate_question(callback: CallbackQuery):
     
     # Формируем текст вопроса
     correct_index: int
-    lines = [f"<b>{question.question_number}-savol</b>\n\n{question.text}\n"]
+    lines = [f"<b>{question.question_number}-savol</b>\n\n{question.text}\n\n"]
     for i, opt in enumerate(question.options):
         lines.append(f"F{i+1}. {opt}")
         if opt == question.correct_answer:
             correct_index = i
-        if i < len(question.options):
+        if i < (len(question.options) - 1):
             lines.append("———————————————")
     lines.append("\n\n@yhq_imtihon_bot")
 
@@ -1087,14 +1102,15 @@ async def delete_saved_question(callback: CallbackQuery):
 
         previous_has_photo = callback.message.photo is not None
         new_has_photo = new_question.photo_id != '-'
+        
         # Формируем текст вопроса
         correct_index: int
-        lines = [f"<b>{new_question.question_number}-savol</b>\n\n{new_question.text}\n"]
+        lines = [f"<b>{new_question.question_number}-savol</b>\n\n{new_question.text}\n\n"]
         for i, opt in enumerate(new_question.options):
             lines.append(f"F{i+1}. {opt}")
             if opt == new_question.correct_answer:
                 correct_index = i
-            if i < len(new_question.options):
+            if i < (len(new_question.options) - 1):
                 lines.append("———————————————")
         lines.append("\n\n@yhq_imtihon_bot")
 
