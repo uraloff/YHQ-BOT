@@ -1,5 +1,4 @@
 from os import getenv
-from lxml import etree, html
 
 from aiogram import Router, F, Bot
 from aiogram.fsm.context import FSMContext
@@ -445,7 +444,6 @@ async def handle_sign_photo(message: Message, state: FSMContext):
     await state.set_state(AddRoadSignState.check_sign_data)
 
 
-
 @admin_router.message(AddRoadSignState.check_sign_data)
 async def check_sign_data(message: Message, state: FSMContext):
     data = await state.get_data()
@@ -482,7 +480,6 @@ async def change_info_command(message: Message, state: FSMContext):
         "Iltimos, yangi /info komandasini matn sifatida kiriting:",
         reply_markup=ReplyKeyboardRemove()
     )
-    # ВАЖНО: ставим правильное состояние
     await state.set_state(ChangeInfoCommand.enter_info_text)
 
 @admin_router.message(ChangeInfoCommand.enter_info_text)
@@ -491,8 +488,6 @@ async def enter_info_text(message: Message, state: FSMContext):
         await message.answer("Iltimos, matn sifatida kiriting!")
         return
 
-    # Если админ оформил текст через интерфейс Telegram (есть entities) —
-    # берём готовый HTML. Иначе сохраняем как есть (вдруг там ручные <b>…</b>).
     text_to_save = message.html_text if message.entities else message.text
 
     await rq.change_info_cmd_text(text_to_save)
