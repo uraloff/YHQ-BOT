@@ -121,7 +121,7 @@ def build_question_keyboard(shuffled_options: list, mode: str, position: int, to
         for i in range(len(shuffled_options)):
             text = f"F{i+1}"
             if answer:
-                if shuffled_options[i+1] == answer.user_answer:
+                if shuffled_options[i] == answer.user_answer:
                     text += " ✅" if answer.is_correct else " ❌"
                 elif not answer.is_correct and (i+1) == correct_index:
                     text += " ✅"

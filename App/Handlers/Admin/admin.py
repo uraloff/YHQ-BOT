@@ -374,7 +374,8 @@ async def finalize_question(callback: CallbackQuery, state: FSMContext):
 
 @admin_router.message(F.text == "Bilet qo'shish ➕")
 async def enter_ticket(message: Message, state: FSMContext):
-    await message.answer("Yangi bilet raqamini kiriting <i>(masalan: 1)</i>", reply_markup=ReplyKeyboardRemove())
+    last_ticket = await rq.get_all_ticket_nums()
+    await message.answer(f"Yangi bilet raqamini kiriting (masalan: <code>{last_ticket[-1] + 1}</code>)", reply_markup=ReplyKeyboardRemove())
     await state.set_state(AddTicket.enter_ticket)
 
 @admin_router.message(AddTicket.enter_ticket)
