@@ -88,20 +88,24 @@ async def uz_start_exam(callback: CallbackQuery):
     answer = await rq.get_user_answer(session_id, exam_question.id)
 
     # Формируем текст вопроса
+    correct_index: int
     lines = [f"<b>{exam_question.question_number}-savol</b>\n\n{exam_question.text}\n\n"]
     for i, opt in enumerate(sq.shuffled_options, start=1):
         lines.append(f"F{i}. {opt}")
+        if opt == exam_question.correct_answer:
+            correct_index = i
         if i < len(sq.shuffled_options):
             lines.append("———————————————")
     lines.append("\n\n@yhq_imtihon_bot")
 
     question_text = "\n".join(lines)
     keyboard = kb.build_question_keyboard(
-        total_options=len(sq.shuffled_options),
+        shuffled_options=sq.shuffled_options,
         mode='exam',
         position=0,
         total_questions=len(exam_questions_list),
         session_id=session_id,
+        correct_index=correct_index,
         answer=answer
     )
 
@@ -263,20 +267,24 @@ async def exam_navigate_question(callback: CallbackQuery):
     cache["question_id"] = exam_question.id
     
     # Формируем текст вопроса
+    correct_index: int
     lines = [f"<b>{exam_question.question_number}-savol</b>\n\n{exam_question.text}\n\n"]
     for i, opt in enumerate(sq.shuffled_options, start=1):
         lines.append(f"F{i}. {opt}")
+        if opt == exam_question.correct_answer:
+            correct_index = i
         if i < len(sq.shuffled_options):
             lines.append("———————————————")
     lines.append("\n\n@yhq_imtihon_bot")
 
     question_text = "\n".join(lines)
     keyboard = kb.build_question_keyboard(
-        total_options=len(sq.shuffled_options),
+        shuffled_options=sq.shuffled_options,
         mode='exam',
         position=position,
         total_questions=len(exam_questions_list),
         session_id=session_id,
+        correct_index=correct_index,
         answer=answer
     )
 
@@ -379,20 +387,24 @@ async def ticket_selected(callback: CallbackQuery):
     answer = await rq.get_user_answer(session_id, question.id)
 
     # Формируем текст вопроса
+    correct_index: int
     lines = [f"<b>{question.question_number}-savol</b>\n\n{question.text}\n\n"]
     for i, opt in enumerate(sq.shuffled_options, start=1):
         lines.append(f"F{i}. {opt}")
+        if opt == question.correct_answer:
+            correct_index = i
         if i < len(sq.shuffled_options):
             lines.append("———————————————")
     lines.append("\n\n@yhq_imtihon_bot")
 
     question_text = "\n".join(lines)
     keyboard = kb.build_question_keyboard(
-        total_options=len(sq.shuffled_options),
+        shuffled_options=sq.shuffled_options,
         mode='ticket',
         position=0,
         total_questions=len(questions_list),
         session_id=session_id,
+        correct_index=correct_index,
         answer=answer
     )
 
@@ -546,20 +558,24 @@ async def ticket_navigate_question(callback: CallbackQuery):
     cache["question_id"] = question.id
     
     # Формируем текст вопроса
+    correct_index: int
     lines = [f"<b>{question.question_number}-savol</b>\n\n{question.text}\n\n"]
     for i, opt in enumerate(sq.shuffled_options, start=1):
         lines.append(f"F{i}. {opt}")
+        if opt == question.correct_answer:
+            correct_index = i
         if i < len(sq.shuffled_options):
             lines.append("———————————————")
     lines.append("\n\n@yhq_imtihon_bot")
 
     question_text = "\n".join(lines)
     keyboard = kb.build_question_keyboard(
-        total_options=len(sq.shuffled_options),
+        shuffled_options=sq.shuffled_options,
         mode='ticket',
         position=position,
         total_questions=len(questions_list),
         session_id=session_id,
+        correct_index=correct_index,
         answer=answer
     )
 
@@ -676,20 +692,24 @@ async def uz_fix_mistakes(callback: CallbackQuery):
     answer = await rq.get_user_answer(session_id, mistake.id)
 
     # Формируем текст вопроса
+    correct_index: int
     lines = [f"<b>{mistake.question_number}-savol</b>\n\n{mistake.text}\n\n"]
     for i, opt in enumerate(sq.shuffled_options, start=1):
         lines.append(f"F{i}. {opt}")
+        if opt == mistake.correct_answer:
+            correct_index = i
         if i < len(sq.shuffled_options):
             lines.append("———————————————")
     lines.append("\n\n@yhq_imtihon_bot")
 
     question_text = "\n".join(lines)
     keyboard = kb.build_question_keyboard(
-        total_options=len(sq.shuffled_options),
+        shuffled_options=sq.shuffled_options,
         mode='mistakes',
         position=0,
         total_questions=len(mistakes_list),
         session_id=session_id,
+        correct_index=correct_index,
         answer=answer
     )
     
@@ -841,20 +861,24 @@ async def mistakes_navigate_question(callback: CallbackQuery):
     cache["question_id"] = mistake.id
 
     # Формируем текст вопроса
+    correct_index: int
     lines = [f"<b>{mistake.question_number}-savol</b>\n\n{mistake.text}\n\n"]
     for i, opt in enumerate(sq.shuffled_options, start=1):
         lines.append(f"F{i}. {opt}")
+        if opt == mistake.correct_answer:
+            correct_index = i
         if i < len(sq.shuffled_options):
             lines.append("———————————————")
     lines.append("\n\n@yhq_imtihon_bot")
 
     question_text = "\n".join(lines)
     keyboard = kb.build_question_keyboard(
-        total_options=len(sq.shuffled_options),
+        shuffled_options=sq.shuffled_options,
         mode='mistakes',
         position=position,
         total_questions=len(mistakes_list),
         session_id=session_id,
+        correct_index=correct_index,
         answer=answer
     )
 
@@ -941,10 +965,11 @@ async def uz_btn_saved_questions(callback: CallbackQuery):
 
     question_text = "\n".join(lines)
     keyboard = kb.build_question_keyboard(
-        total_options=len(question.options),
-        mode=f'saved_{correct_index}',
+        shuffled_options=question.options,
+        mode='saved',
         position=0,
-        total_questions=len(questions_list)
+        total_questions=len(questions_list),
+        correct_index=correct_index
     )
     previous_has_photo = callback.message.photo is not None
     new_has_photo = question.photo_id != '-'
@@ -1022,10 +1047,11 @@ async def saved_navigate_question(callback: CallbackQuery):
 
     question_text = "\n".join(lines)
     keyboard = kb.build_question_keyboard(
-        total_options=len(question.options),
-        mode=f'saved_{correct_index}',
-        position=position,
-        total_questions=len(questions_list)
+        shuffled_options=question.options,
+        mode='saved',
+        position=0,
+        total_questions=len(questions_list),
+        correct_index=correct_index
     )
 
     user_question_cache[callback.from_user.id] = {
@@ -1116,10 +1142,11 @@ async def delete_saved_question(callback: CallbackQuery):
 
         new_question_text = "\n".join(lines)
         keyboard = kb.build_question_keyboard(
-            total_options=len(new_question.options),
-            mode=f"saved_{correct_index}",
-            position=position,
-            total_questions=len(updated_list)
+            shuffled_options=new_question.options,
+            mode='saved',
+            position=0,
+            total_questions=len(questions_list),
+            correct_index=correct_index
         )
 
         try:

@@ -83,12 +83,11 @@ def generate_ticket_keyboard(tickets: list[int], current_page: int, per_page: in
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
-def build_question_keyboard(total_options: int, mode: str, position: int, total_questions: int, session_id: int | None = None, answer: Answer | None = None) -> InlineKeyboardMarkup:
+def build_question_keyboard(shuffled_options: list, mode: str, position: int, total_questions: int, session_id: int | None = None, correct_index: int | None = None, answer: Answer | None = None) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
 
-    if mode.startswith("saved_"):
-        correct_index = int(mode.split("_")[-1])
-        for i in range(total_options):
+    if mode == "saved":
+        for i in range(len(shuffled_options)):
             text = f"F{i+1}"
             if i == correct_index:
                 text += " ✅"
@@ -119,9 +118,15 @@ def build_question_keyboard(total_options: int, mode: str, position: int, total_
         builder.row(InlineKeyboardButton(text="📤 Saqlanganlardan o'chirish", callback_data=f"remove_saved_question"))
         builder.row(InlineKeyboardButton(text="🏠 Asosiy menyu", callback_data=f"uz_main_menu"))
     else:
-        for i in range(total_options):
+        for i in range(len(shuffled_options)):
+            text = f"F{i+1}"
+            if answer:
+                if shuffled_options[i] == answer.user_answer:
+                    text += " ✅" if answer.is_correct else " ❌"
+                elif not answer.is_correct and i == correct_index:
+                    text += " ✅"
             builder.button(
-                text=f"F{i+1}",
+                text=text,
                 callback_data=f"{mode}_variant_{i}"
             )
         builder.adjust(5)
