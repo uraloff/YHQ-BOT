@@ -142,7 +142,7 @@ async def add_first_option(message: Message, state: FSMContext):
     q_text = data.get("text")
     await message.answer(f"<b>{q_number}-savol</b>\n\n"
                          f"{q_text}\n\n\n"
-                         f"F1. {msg_options}\n\n\n"
+                         f"F1. {msg_options[-1]}\n\n\n"
                          f"@yhq_imtihon_bot",
                          reply_markup=kb.add_first_option_kb())
     await message.answer(f"<b>Endi ikkinchi variantni kiriting:</b>")
