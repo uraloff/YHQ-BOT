@@ -118,7 +118,7 @@ async def question_text_input(message: Message, state: FSMContext):
         await message.answer("Savolni matn sifatida kiriting!")
         return
     
-    q_number = rq.get_next_question_number()
+    q_number = await rq.get_next_question_number()
     await state.update_data(text=message.text, q_number=q_number, msg_options=[], kb_options=[])
     await message.answer("Yaxshi endi variantlarni aniqlab olamiz. Birinchi variantni kiriting:")
     await state.set_state(AddQuestion.enter_first_option)
