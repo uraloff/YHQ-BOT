@@ -121,9 +121,9 @@ def build_question_keyboard(shuffled_options: list, mode: str, position: int, to
         for i in range(len(shuffled_options)):
             text = f"F{i+1}"
             if answer:
-                if shuffled_options[i] == answer.user_answer:
+                if shuffled_options[i+1] == answer.user_answer:
                     text += " ✅" if answer.is_correct else " ❌"
-                elif not answer.is_correct and i == correct_index:
+                elif not answer.is_correct and (i+1) == correct_index:
                     text += " ✅"
             builder.button(
                 text=text,
@@ -276,10 +276,13 @@ skip_kb = ReplyKeyboardMarkup(keyboard=[
 
 def answer_variants_kb(options: list[str]) -> ReplyKeyboardMarkup:
     kb = ReplyKeyboardBuilder()
-    for i, opt in enumerate(options):
-        kb.button(text=opt)
-    kb.adjust(1)
-    return kb.as_markup(resize_keyboard=True)
+    for i, _ in enumerate(options, start=1):
+        kb.button(text=f"F{i}")
+    kb.adjust(len(options))
+    return kb.as_markup(
+        resize_keyboard=True,
+        input_field_placeholder="To'g'ri javobni tanlang"
+    )
 
 
 ticket_not_found_kb = ReplyKeyboardMarkup(keyboard=[
@@ -290,34 +293,36 @@ ticket_not_found_kb = ReplyKeyboardMarkup(keyboard=[
 )
 
 
-def answer_variants_kb(options: list[str]) -> ReplyKeyboardMarkup:
-    kb = [[KeyboardButton(text=opt)] for opt in options]
-    return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True, one_time_keyboard=True)
-
-
-def add_first_option_kb(option: list[str]) -> InlineKeyboardMarkup:
+def add_first_option_kb() -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
-    kb.button(text=option[0], callback_data="first_option")
+    kb.button(text='F1', callback_data="noop")
 
-    kb.adjust(1)
+    kb.adjust(5)
     return kb.as_markup()
 
 
 def add_second_option_kb(options: list[str]) -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
-    kb.button(text=options[0], callback_data="first_option")
-    kb.button(text=options[1], callback_data="second_option")
+    kb.button(text=options[0], callback_data="noop")
+    kb.button(text=options[1], callback_data="noop")
 
     kb.adjust(1)
     return kb.as_markup()
 
 
+ask_for_other_option_kb = ReplyKeyboardMarkup(keyboard=[
+        [KeyboardButton(text="Ha, qo'shamiz")],
+        [KeyboardButton(text="Yo'q, keyingi bosqichga o'tamiz")]
+    ],
+    resize_keyboard=True
+)
+
+
 def add_other_option_kb(options: list[str]) -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
-    for i, opt in enumerate(options):
-        kb.button(text=opt, callback_data=f"opt_{i}")
-
-    kb.adjust(1)
+    for i, _ in enumerate(options, start=1):
+        kb.button(text=f"F{i}", callback_data="noop")
+    kb.adjust(len(options))
     return kb.as_markup()
 
 
@@ -325,8 +330,8 @@ def identify_correct_option_kb(options: list[str], correct_answer: str) -> Inlin
     kb = InlineKeyboardBuilder()
     for opt in options:
         label = f"{opt} ✅" if opt == correct_answer else opt
-        kb.button(text=label, callback_data=f"ignore")
-    kb.adjust(1)
+        kb.button(text=label, callback_data="noop")
+    kb.adjust(len(options))
     return kb.as_markup()
 
 
@@ -334,10 +339,10 @@ def confirm_question_kb(options: list[str], correct_answer: str) -> InlineKeyboa
     kb = InlineKeyboardBuilder()
     for opt in options:
         label = f"{opt} ✅" if opt == correct_answer else opt
-        kb.button(text=label, callback_data=f"loop")
+        kb.button(text=label, callback_data="noop")
     kb.button(text="Tasdiqlash ✅", callback_data="confirm_question")
     kb.button(text="Bekor qilish ❌", callback_data="cancel_question")
-    kb.adjust(*([1] * len(options)), 2)
+    kb.adjust(len(options), 2)
     return kb.as_markup()
 
 
@@ -345,8 +350,8 @@ def after_add_question_ikb(options: list[str], correct_answer: str) -> InlineKey
     kb = InlineKeyboardBuilder()
     for opt in options:
         label = f"{opt} ✅" if opt == correct_answer else opt
-        kb.button(text=label, callback_data=f"loop")
-    kb.adjust(1)
+        kb.button(text=label, callback_data="noop")
+    kb.adjust(len(options))
     return kb.as_markup()
 
 

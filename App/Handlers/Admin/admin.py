@@ -117,8 +117,9 @@ async def question_text_input(message: Message, state: FSMContext):
     if not message.text:
         await message.answer("Savolni matn sifatida kiriting!")
         return
-
-    await state.update_data(text=message.text, options=[])
+    
+    q_number = rq.get_next_question_number()
+    await state.update_data(text=message.text, q_number=q_number, msg_options=[], kb_options=[])
     await message.answer("Yaxshi endi variantlarni aniqlab olamiz. Birinchi variantni kiriting:")
     await state.set_state(AddQuestion.enter_first_option)
 
@@ -130,13 +131,21 @@ async def add_first_option(message: Message, state: FSMContext):
         return
 
     data = await state.get_data()
-    options = data.get("options", [])
-    options.append(message.text)
-    await state.update_data(options=options)
+    msg_options = data.get("msg_options", [])
+    msg_options.append(message.text)
+    await state.update_data(msg_options=msg_options)
+    kb_options = data.get("kb_options", [])
+    kb_options.append('F1')
+    await state.update_data(kb_options=kb_options)
 
+    q_number = data.get("q_number")
     q_text = data.get("text")
-    await message.answer(f"{q_text}\n\nEndi ikkinchi variantni kiriting:",
-                             reply_markup=kb.add_first_option_kb(options))
+    await message.answer(f"<b>{q_number + 1}-savol</b>\n\n"
+                         f"{q_text}\n\n\n"
+                         f"F1. {msg_options}\n\n\n"
+                         f"@yhq_imtihon_bot",
+                         reply_markup=kb.add_first_option_kb(kb_options))
+    await message.answer(f"<b>Endi ikkinchi variantni kiriting:</b>")
     await state.set_state(AddQuestion.enter_second_option)
 
 
@@ -147,26 +156,46 @@ async def add_second_option(message: Message, state: FSMContext):
         return
 
     data = await state.get_data()
-    options = data.get("options", [])
-    options.append(message.text)
-    await state.update_data(options=options)
+    msg_options = data.get("msg_options", [])
+    msg_options.append(message.text)
+    await state.update_data(msg_options=msg_options)
+    kb_options = data.get("kb_options", [])
+    kb_options.append('F2')
+    await state.update_data(kb_options=kb_options)
 
+    q_number = data.get("q_number")
     q_text = data.get("text")
-    await message.answer(f"{q_text}\n\nYaxshi, yana variant qo'shamizmi?\n  • <code>Ha, qo'shamiz</code>\n  • <code>Yo'q, keyingi bosqichga o'tamiz</code>",
-                             reply_markup=kb.add_second_option_kb(options))
+    await message.answer(f"<b>{q_number + 1}-savol</b>\n\n"
+                         f"{q_text}\n\n\n"
+                         f"F1. {msg_options[0]}\n"
+                         f"———————————————\n"
+                         f"F2. {msg_options[1]}\n\n\n"
+                         f"@yhq_imtihon_bot",
+                         reply_markup=kb.add_second_option_kb(kb_options))
+    await message.answer("Yaxshi, yana variant qo'shamizmi?",
+                             reply_markup=kb.ask_for_other_option_kb())
     await state.set_state(AddQuestion.enter_other_options_or_no)
 
 
 @admin_router.message(AddQuestion.enter_other_options_or_no)
 async def enter_other_options_or_no(message: Message, state: FSMContext):
     data = await state.get_data()
-    options = data.get("options", [])
+    msg_options = data.get("msg_options", [])
     if message.text == "Ha, qo'shamiz":
         await message.answer("Yangi variantni kiriting:", reply_markup=ReplyKeyboardRemove())
         await state.set_state(AddQuestion.enter_other_options)
     elif message.text == "Yo'q, keyingi bosqichga o'tamiz":
-        await message.answer(f"Chunarli, endi <b>{data.get("text")}</b> savolining to'g'ri javobini tanlang:",
-                                      reply_markup=kb.answer_variants_kb(options))
+        lines = [f"Chunarli, endi <b>{data.get('text')}</b> savolining to'g'ri javobini tanlang:\n\n"]
+        for i, opt in enumerate(msg_options, start=1):
+            lines.append(f"F{i}. {opt}")
+            if i < len(msg_options):
+                lines.append("———————————————")
+        lines.append("\n\n@yhq_imtihon_bot")
+        text_msg = "\n".join(lines)
+        await message.answer(
+            text_msg,
+            reply_markup=kb.answer_variants_kb(msg_options)
+        )
         await state.set_state(AddQuestion.choose_correct_option)
     else:
         await message.answer("Noto'g'ri tanlov. Iltimos, qaytadan javobingizni kiriting ❌")
@@ -174,77 +203,136 @@ async def enter_other_options_or_no(message: Message, state: FSMContext):
 
 
 @admin_router.message(AddQuestion.enter_other_options)
-async def add_second_option(message: Message, state: FSMContext):
+async def add_other_option(message: Message, state: FSMContext):
     if not message.text:
         await message.answer("Variantni matn sifatida kiriting!")
         return
 
     data = await state.get_data()
-    options = data.get("options", [])
-    options.append(message.text)
-    if len(options) >= 5:
-        await state.update_data(options=options)
-
-        q_text = data.get("text")
-        await message.answer(f"Endi <b>{q_text}</b> savolining to'g'ri javobini tanlang:",
-                             reply_markup=kb.answer_variants_kb(options))
+    msg_options = data.get("msg_options", [])
+    msg_options.append(message.text)
+    await state.update_data(msg_options=msg_options)
+    kb_options = data.get("kb_options", [])
+    kb_options.append(f'F{kb_options[-1][1] + 1}')
+    await state.update_data(kb_options=kb_options)
+    if len(msg_options) >= 5:
+        lines = [f"Endi <b>{data.get('text')}</b> savolining to'g'ri javobini tanlang:\n\n"]
+        for i, opt in enumerate(msg_options, start=1):
+            lines.append(f"F{i}. {opt}")
+            if i < len(msg_options):
+                lines.append("———————————————")
+        text_msg = "\n".join(lines)
+        await message.answer(
+            text_msg,
+            reply_markup=kb.answer_variants_kb(msg_options)
+        )
         await state.set_state(AddQuestion.choose_correct_option)
-    elif len(options) < 5:
-        await state.update_data(options=options)
-
-        q_text = data.get("text")
-        await message.answer(f"{q_text}\n\nYaxshi, yana variant qo'shamizmi?\n  • <code>Ha, qo'shamiz</code>\n  • <code>Yo'q, keyingi bosqichga o'tamiz</code>",
-                                reply_markup=kb.add_other_option_kb(options))
+    elif len(msg_options) < 5:
+        q_number = data.get("q_number")
+        lines = [f"<b>{q_number + 1}-savol</b>\n\n{data.get("text")}\n\n\n"]
+        for i, opt in enumerate(msg_options, start=1):
+            lines.append(f"F{i}. {opt}")
+            if i < len(msg_options):
+                lines.append("———————————————")
+        lines.append("\n\n@yhq_imtihon_bot")
+        text_msg = "\n".join(lines)
+        await message.answer(
+            text_msg,
+            reply_markup=kb.add_other_option_kb(msg_options)
+        )
+        await message.answer("Yaxshi, yana variant qo'shamizmi?",
+                                 reply_markup=kb.ask_for_other_option_kb())
         await state.set_state(AddQuestion.enter_other_options_or_no)
 
 
 @admin_router.message(AddQuestion.choose_correct_option)
 async def select_correct_option(message: Message, state: FSMContext):
     data = await state.get_data()
-    options = data.get("options", [])
+    msg_options = data.get("msg_options", [])
+    kb_options = data.get("kb_options", [])
     text = message.text.strip()
+    await state.update_data(correct_answer_kb=text)
 
-    if text not in options:
+    if text not in kb_options:
         await message.answer("Iltimos, quyidagi variantlardan birini tanlang!")
         return
 
-    await state.update_data(correct_answer=text)
+    answer_index = kb_options.index(text)
+    correct_answer = msg_options[answer_index]
+    await state.update_data(correct_answer=correct_answer)
 
-    question_text = data.get("text", "")
+    q_text = data.get("text", "")
+    q_number = data.get("q_number")
+    lines = [f"<b>{q_number + 1}-savol</b>\n\n{q_text}\n\n\n"]
+    for i, opt in enumerate(msg_options, start=1):
+        lines.append(f"F{i}. {opt}")
+        if i < len(msg_options):
+            lines.append("———————————————")
+    lines.append("\n\n@yhq_imtihon_bot")
+    text_msg = "\n".join(lines)
     await message.answer(
-        f"{question_text}\n\nYaxshi, endi rasm yuboring (majburiy emas):\n\n<code>O'tkazib yuborish</code> — agar rasm yubormoqchi bo'lmasangiz",
-        reply_markup=kb.identify_correct_option_kb(options, correct_answer=text)
+        text_msg,
+        reply_markup=kb.identify_correct_option_kb(kb_options, correct_answer=text)
+    )
+    await message.answer("Yaxshi, endi rasm yuboring (majburiy emas)",
+        reply_markup=kb.skip_kb
     )
 
     await state.set_state(AddQuestion.send_photo)
 
 
-@admin_router.message(AddQuestion.send_photo, F.text == "O'tkazib yuborish")
+@admin_router.message(AddQuestion.send_photo, F.text == "O'tkazib yuborish ⏩")
 async def skip_photo(message: Message, state: FSMContext):
     data = await state.get_data()
     await state.update_data(photo_id='-')
-    text = data['text']
-    options = data['options']
-    correct = data['correct_answer']
+    
+    msg_options = data.get("msg_options", [])
+    kb_options = data.get("kb_options", [])
+    correct_answer_kb = data.get('correct_answer_kb')
+    q_text = data.get('text')
+    q_number = data.get("q_number")
 
-    await message.answer(f"{text}\n\nZo'r, endi kiritgan ma'lumotlaringizni tasdiqlang",
-                         reply_markup=kb.confirm_question_kb(options, correct))
+    lines = [f"Zo'r, endi kiritgan ma'lumotlaringizni tasdiqlang\n\n<b>{q_number + 1}-savol</b>\n\n{q_text}\n\n\n"]
+    for i, opt in enumerate(msg_options, start=1):
+        lines.append(f"F{i}. {opt}")
+        if i < len(msg_options):
+            lines.append("———————————————")
+    lines.append("\n\n@yhq_imtihon_bot")
+    text_msg = "\n".join(lines)
+    
+    await message.answer('⏳', reply_markup=ReplyKeyboardRemove())
+    await message.answer(
+        text_msg,
+        reply_markup=kb.confirm_question_kb(kb_options, correct_answer_kb)
+    )
     await state.set_state(AddQuestion.confirm_data)
 
 
 @admin_router.message(AddQuestion.send_photo, F.photo)
 async def handle_photo(message: Message, state: FSMContext):
     file_id = message.photo[-1].file_id
+    data = await state.get_data()
     await state.update_data(photo_id=file_id)
 
-    data = await state.get_data()
-    text = data['text']
-    options = data['options']
-    correct = data['correct_answer']
+    msg_options = data.get("msg_options", [])
+    kb_options = data.get("kb_options", [])
+    correct_answer_kb = data.get('correct_answer_kb')
+    q_text = data.get('text')
+    q_number = data.get("q_number")
+
+    lines = [f"Zo'r, endi kiritgan ma'lumotlaringizni tasdiqlang\n\n<b>{q_number + 1}-savol</b>\n\n{q_text}\n\n\n"]
+    for i, opt in enumerate(msg_options, start=1):
+        lines.append(f"F{i}. {opt}")
+        if i < len(msg_options):
+            lines.append("———————————————")
+    lines.append("\n\n@yhq_imtihon_bot")
+    text_msg = "\n".join(lines)
+    
+    await message.answer('⏳', reply_markup=ReplyKeyboardRemove())
     await message.answer_photo(
         photo=file_id,
-        caption=f"{text}\n\nZo'r, endi kiritgan ma'lumotlaringizni tasdiqlang",
-        reply_markup=kb.confirm_question_kb(options, correct)
+        caption=text_msg,
+        reply_markup=kb.confirm_question_kb(kb_options, correct_answer_kb)
     )
     await state.set_state(AddQuestion.confirm_data)
 
@@ -254,7 +342,7 @@ async def finalize_question(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     photo_id = data.get("photo_id")
     if callback.data == "cancel_question":
-        await callback.message.edit_text("Yangi savol muvaffaqiyatli bekor qilindi ❌")
+        await callback.message.edit_text("Yangi savol muvaffaqiyatli bekor qilindi ❌", reply_markup=kb.after_add_question_kb)
         await state.clear()
         return
 
@@ -262,7 +350,7 @@ async def finalize_question(callback: CallbackQuery, state: FSMContext):
     await rq.add_question(
         ticket_id=data["ticket_id"],
         text=data["text"],
-        options=data["options"],
+        options=data["msg_options"],
         correct_answer=data["correct_answer"],
         photo_id=photo_id
     )
@@ -270,16 +358,16 @@ async def finalize_question(callback: CallbackQuery, state: FSMContext):
     if photo_id == '-':
         await callback.message.delete()
         await callback.message.answer('🎉', reply_markup=kb.after_add_question_kb)
-        await callback.message.answer(f"<b>Yangi savol muvaffaqiyatli qo'shildi ✅</b>\n\n<b>Bilet:</b> {data['ticket_number']}\n<b>Savol:</b> {data['text']}",
-                                    reply_markup=kb.after_add_question_ikb(data['options'], data['correct_answer']))
+        await callback.message.answer(f"<b>Yangi savol muvaffaqiyatli qo'shildi ✅</b>\n\n<b>Bilet:</b> {data['ticket_number']}\n<b>Savol raqami:</b> {data['q_number'] + 1}\n<b>Savol:</b> {data['text']}",
+                                    reply_markup=kb.after_add_question_ikb(data['kb_options'], data['correct_answer_kb']))
         await state.clear()
     elif photo_id != '-':
         await callback.message.delete()
         await callback.message.answer('🎉', reply_markup=kb.after_add_question_kb)
         await callback.message.answer_photo(
             photo=photo_id,
-            caption=f"<b>Yangi savol muvaffaqiyatli qo'shildi ✅</b>\n\n<b>Bilet:</b> {data['ticket_number']}\n<b>Savol:</b> {data['text']}",
-            reply_markup=kb.after_add_question_ikb(data['options'], data['correct_answer'])
+            caption=f"<b>Yangi savol muvaffaqiyatli qo'shildi ✅</b>\n\n<b>Bilet:</b> {data['ticket_number']}\n<b>Savol raqami:</b> {data['q_number'] + 1}\n<b>Savol:</b> {data['text']}",
+            reply_markup=kb.after_add_question_ikb(data['kb_options'], data['correct_answer_kb'])
         )
         await state.clear()
 
