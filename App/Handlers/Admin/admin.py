@@ -213,7 +213,7 @@ async def add_other_option(message: Message, state: FSMContext):
     msg_options.append(message.text)
     await state.update_data(msg_options=msg_options)
     kb_options = data.get("kb_options", [])
-    kb_options.append(f'F{kb_options[-1][1] + 1}')
+    kb_options.append(f'F{int(kb_options[-1][1]) + 1}')
     await state.update_data(kb_options=kb_options)
     if len(msg_options) >= 5:
         lines = [f"Endi <b>{data.get('text')}</b> savolining to'g'ri javobini tanlang:\n\n"]
