@@ -145,7 +145,7 @@ async def add_first_option(message: Message, state: FSMContext):
                          f"F1. {msg_options[-1]}\n\n\n"
                          f"@yhq_imtihon_bot",
                          reply_markup=kb.add_first_option_kb())
-    await message.answer(f"<b>Endi ikkinchi variantni kiriting:</b>")
+    await message.answer(f"Endi ikkinchi variantni kiriting:")
     await state.set_state(AddQuestion.enter_second_option)
 
 

@@ -306,7 +306,7 @@ def add_second_option_kb(options: list[str]) -> InlineKeyboardMarkup:
     kb.button(text=options[0], callback_data="noop")
     kb.button(text=options[1], callback_data="noop")
 
-    kb.adjust(1)
+    kb.adjust(2)
     return kb.as_markup()
 
 
