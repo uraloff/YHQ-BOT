@@ -92,7 +92,7 @@ async def start_add_question(message: Message, state: FSMContext):
 @admin_router.message(AddQuestion.enter_ticket_number)
 async def ticket_input(message: Message, state: FSMContext):
     if not message.text.isdigit():
-        await message.answer("Bilet raqami sonda bo'lishi kerak!")
+        await message.answer("Bilet raqami sonda bo'lishi kerak!. ticket_input()")
         return
 
     number = int(message.text)
@@ -381,7 +381,7 @@ async def enter_ticket(message: Message, state: FSMContext):
 @admin_router.message(AddTicket.enter_ticket)
 async def check_ticket(message: Message, state: FSMContext):
     if not message.text.isdigit():
-        await message.answer("Bilet raqami sonda bo'lishi kerak!")
+        await message.answer("Bilet raqami sonda bo'lishi kerak!. check_ticket()")
         return
     
     tickets = await rq.get_ticket_by_number(int(message.text))
