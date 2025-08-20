@@ -144,7 +144,7 @@ async def add_first_option(message: Message, state: FSMContext):
                          f"{q_text}\n\n\n"
                          f"F1. {msg_options}\n\n\n"
                          f"@yhq_imtihon_bot",
-                         reply_markup=kb.add_first_option_kb(kb_options))
+                         reply_markup=kb.add_first_option_kb())
     await message.answer(f"<b>Endi ikkinchi variantni kiriting:</b>")
     await state.set_state(AddQuestion.enter_second_option)
 
@@ -173,7 +173,7 @@ async def add_second_option(message: Message, state: FSMContext):
                          f"@yhq_imtihon_bot",
                          reply_markup=kb.add_second_option_kb(kb_options))
     await message.answer("Yaxshi, yana variant qo'shamizmi?",
-                             reply_markup=kb.ask_for_other_option_kb())
+                             reply_markup=kb.ask_for_other_option_kb)
     await state.set_state(AddQuestion.enter_other_options_or_no)
 
 
@@ -241,7 +241,7 @@ async def add_other_option(message: Message, state: FSMContext):
             reply_markup=kb.add_other_option_kb(msg_options)
         )
         await message.answer("Yaxshi, yana variant qo'shamizmi?",
-                                 reply_markup=kb.ask_for_other_option_kb())
+                                 reply_markup=kb.ask_for_other_option_kb)
         await state.set_state(AddQuestion.enter_other_options_or_no)
 
 
