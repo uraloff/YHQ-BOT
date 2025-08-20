@@ -140,7 +140,7 @@ async def add_first_option(message: Message, state: FSMContext):
 
     q_number = data.get("q_number")
     q_text = data.get("text")
-    await message.answer(f"<b>{q_number + 1}-savol</b>\n\n"
+    await message.answer(f"<b>{q_number}-savol</b>\n\n"
                          f"{q_text}\n\n\n"
                          f"F1. {msg_options}\n\n\n"
                          f"@yhq_imtihon_bot",
@@ -165,7 +165,7 @@ async def add_second_option(message: Message, state: FSMContext):
 
     q_number = data.get("q_number")
     q_text = data.get("text")
-    await message.answer(f"<b>{q_number + 1}-savol</b>\n\n"
+    await message.answer(f"<b>{q_number}-savol</b>\n\n"
                          f"{q_text}\n\n\n"
                          f"F1. {msg_options[0]}\n"
                          f"———————————————\n"
@@ -229,7 +229,7 @@ async def add_other_option(message: Message, state: FSMContext):
         await state.set_state(AddQuestion.choose_correct_option)
     elif len(msg_options) < 5:
         q_number = data.get("q_number")
-        lines = [f"<b>{q_number + 1}-savol</b>\n\n{data.get("text")}\n\n\n"]
+        lines = [f"<b>{q_number}-savol</b>\n\n{data.get("text")}\n\n\n"]
         for i, opt in enumerate(msg_options, start=1):
             lines.append(f"F{i}. {opt}")
             if i < len(msg_options):
@@ -263,7 +263,7 @@ async def select_correct_option(message: Message, state: FSMContext):
 
     q_text = data.get("text", "")
     q_number = data.get("q_number")
-    lines = [f"<b>{q_number + 1}-savol</b>\n\n{q_text}\n\n\n"]
+    lines = [f"<b>{q_number}-savol</b>\n\n{q_text}\n\n\n"]
     for i, opt in enumerate(msg_options, start=1):
         lines.append(f"F{i}. {opt}")
         if i < len(msg_options):
@@ -292,7 +292,7 @@ async def skip_photo(message: Message, state: FSMContext):
     q_text = data.get('text')
     q_number = data.get("q_number")
 
-    lines = [f"Zo'r, endi kiritgan ma'lumotlaringizni tasdiqlang\n\n<b>{q_number + 1}-savol</b>\n\n{q_text}\n\n\n"]
+    lines = [f"Zo'r, endi kiritgan ma'lumotlaringizni tasdiqlang\n\n<b>{q_number}-savol</b>\n\n{q_text}\n\n\n"]
     for i, opt in enumerate(msg_options, start=1):
         lines.append(f"F{i}. {opt}")
         if i < len(msg_options):
@@ -320,7 +320,7 @@ async def handle_photo(message: Message, state: FSMContext):
     q_text = data.get('text')
     q_number = data.get("q_number")
 
-    lines = [f"Zo'r, endi kiritgan ma'lumotlaringizni tasdiqlang\n\n<b>{q_number + 1}-savol</b>\n\n{q_text}\n\n\n"]
+    lines = [f"Zo'r, endi kiritgan ma'lumotlaringizni tasdiqlang\n\n<b>{q_number}-savol</b>\n\n{q_text}\n\n\n"]
     for i, opt in enumerate(msg_options, start=1):
         lines.append(f"F{i}. {opt}")
         if i < len(msg_options):
@@ -358,7 +358,7 @@ async def finalize_question(callback: CallbackQuery, state: FSMContext):
     if photo_id == '-':
         await callback.message.delete()
         await callback.message.answer('🎉', reply_markup=kb.after_add_question_kb)
-        await callback.message.answer(f"<b>Yangi savol muvaffaqiyatli qo'shildi ✅</b>\n\n<b>Bilet:</b> {data['ticket_number']}\n<b>Savol raqami:</b> {data['q_number'] + 1}\n<b>Savol:</b> {data['text']}",
+        await callback.message.answer(f"<b>Yangi savol muvaffaqiyatli qo'shildi ✅</b>\n\n<b>Bilet:</b> {data['ticket_number']}\n<b>Savol raqami:</b> {data['q_number']}\n<b>Savol:</b> {data['text']}",
                                     reply_markup=kb.after_add_question_ikb(data['kb_options'], data['correct_answer_kb']))
         await state.clear()
     elif photo_id != '-':
@@ -366,7 +366,7 @@ async def finalize_question(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer('🎉', reply_markup=kb.after_add_question_kb)
         await callback.message.answer_photo(
             photo=photo_id,
-            caption=f"<b>Yangi savol muvaffaqiyatli qo'shildi ✅</b>\n\n<b>Bilet:</b> {data['ticket_number']}\n<b>Savol raqami:</b> {data['q_number'] + 1}\n<b>Savol:</b> {data['text']}",
+            caption=f"<b>Yangi savol muvaffaqiyatli qo'shildi ✅</b>\n\n<b>Bilet:</b> {data['ticket_number']}\n<b>Savol raqami:</b> {data['q_number']}\n<b>Savol:</b> {data['text']}",
             reply_markup=kb.after_add_question_ikb(data['kb_options'], data['correct_answer_kb'])
         )
         await state.clear()
