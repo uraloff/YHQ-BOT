@@ -91,7 +91,10 @@ async def start_add_question(message: Message, state: FSMContext):
 
 @admin_router.message(AddQuestion.enter_ticket_number)
 async def ticket_input(message: Message, state: FSMContext):
-    if not message.text.isdigit() and not message.text == "Bilet qo'shish ➕":
+    if message.text == "Bilet qo'shish ➕":
+        await state.set_state(AddTicket.enter_ticket)
+
+    if not message.text.isdigit():
         await message.answer("Bilet raqami sonda bo'lishi kerak!")
         return
 
@@ -229,7 +232,7 @@ async def add_other_option(message: Message, state: FSMContext):
         await state.set_state(AddQuestion.choose_correct_option)
     elif len(msg_options) < 5:
         q_number = data.get("q_number")
-        lines = [f"<b>{q_number}-savol</b>\n\n{data.get("text")}\n\n\n"]
+        lines = [f"<b>{q_number}-savol</b>\n\n{data.get("text")}\n\n"]
         for i, opt in enumerate(msg_options, start=1):
             lines.append(f"F{i}. {opt}")
             if i < len(msg_options):
@@ -263,7 +266,7 @@ async def select_correct_option(message: Message, state: FSMContext):
 
     q_text = data.get("text", "")
     q_number = data.get("q_number")
-    lines = [f"<b>{q_number}-savol</b>\n\n{q_text}\n\n\n"]
+    lines = [f"<b>{q_number}-savol</b>\n\n{q_text}\n\n"]
     for i, opt in enumerate(msg_options, start=1):
         lines.append(f"F{i}. {opt}")
         if i < len(msg_options):
@@ -292,7 +295,7 @@ async def skip_photo(message: Message, state: FSMContext):
     q_text = data.get('text')
     q_number = data.get("q_number")
 
-    lines = [f"Zo'r, endi kiritgan ma'lumotlaringizni tasdiqlang\n\n<b>{q_number}-savol</b>\n\n{q_text}\n\n\n"]
+    lines = [f"Zo'r, endi kiritgan ma'lumotlaringizni tasdiqlang\n\n<b>{q_number}-savol</b>\n\n{q_text}\n\n"]
     for i, opt in enumerate(msg_options, start=1):
         lines.append(f"F{i}. {opt}")
         if i < len(msg_options):
@@ -320,7 +323,7 @@ async def handle_photo(message: Message, state: FSMContext):
     q_text = data.get('text')
     q_number = data.get("q_number")
 
-    lines = [f"Zo'r, endi kiritgan ma'lumotlaringizni tasdiqlang\n\n<b>{q_number}-savol</b>\n\n{q_text}\n\n\n"]
+    lines = [f"Zo'r, endi kiritgan ma'lumotlaringizni tasdiqlang\n\n<b>{q_number}-savol</b>\n\n{q_text}\n\n"]
     for i, opt in enumerate(msg_options, start=1):
         lines.append(f"F{i}. {opt}")
         if i < len(msg_options):
