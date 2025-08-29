@@ -89,7 +89,7 @@ async def uz_start_exam(callback: CallbackQuery):
 
     # Формируем текст вопроса
     correct_index: int
-    lines = [f"<b>{exam_question.question_number}-savol</b>\n\n{exam_question.text}\n\n"]
+    lines = [f"<b>(1/20) {exam_question.question_number}-savol</b>\n\n{exam_question.text}\n\n"]
     for i, opt in enumerate(sq.shuffled_options, start=1):
         lines.append(f"F{i}. {opt}")
         if opt == exam_question.correct_answer:
@@ -268,7 +268,7 @@ async def exam_navigate_question(callback: CallbackQuery):
     
     # Формируем текст вопроса
     correct_index: int
-    lines = [f"<b>{exam_question.question_number}-savol</b>\n\n{exam_question.text}\n\n"]
+    lines = [f"<b>({position + 1}/20) {exam_question.question_number}-savol</b>\n\n{exam_question.text}\n\n"]
     for i, opt in enumerate(sq.shuffled_options, start=1):
         lines.append(f"F{i}. {opt}")
         if opt == exam_question.correct_answer:
