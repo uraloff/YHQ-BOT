@@ -1,3 +1,4 @@
+import ssl
 import enum
 from os import getenv
 from datetime import datetime
@@ -8,12 +9,18 @@ from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
 from sqlalchemy.ext.asyncio import AsyncAttrs, create_async_engine, async_sessionmaker
 from sqlalchemy import DateTime, String, BigInteger, ForeignKey, Integer, Enum, Boolean, Text
 
+
 load_dotenv()
 db_url = getenv("DB_URL")
 if not db_url:
     raise RuntimeError("DB_URL not found in environment variables")
 
-engine = create_async_engine(db_url)
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
+
+
+engine = create_async_engine(db_url, connect_args={"ssl": ssl_context})
 async_session = async_sessionmaker(engine)
 
 
