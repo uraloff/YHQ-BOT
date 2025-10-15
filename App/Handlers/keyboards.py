@@ -206,69 +206,64 @@ uz_pass_exam_again_kb = InlineKeyboardMarkup(inline_keyboard=[
 # -----------------------------------------------------------------------------Админские клавиатуры-------------------------------------------------------------------------------------------
 def confirm_admin_kb(user_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="✅ Tasdiqlash", callback_data=f"admin_confirm:{user_id}"),
-             InlineKeyboardButton(text="❌ Bekor qilish", callback_data=f"admin_cancel:{user_id}")]
+            [InlineKeyboardButton(text="❌ Отменить", callback_data=f"admin_cancel:{user_id}"),
+             InlineKeyboardButton(text="✅ Подтвердить", callback_data=f"admin_confirm:{user_id}")]
     ])
 
 
 admin_menu_kb = ReplyKeyboardMarkup(keyboard=[
-        [KeyboardButton(text="Savol qo'shish")],
-        [KeyboardButton(text="Yo'l belgisini qo'shish")],
-        [KeyboardButton(text="Info komandasini o'zgartirish")]
+        [KeyboardButton(text="Добавить вопрос")],
+        [KeyboardButton(text="Добавить дорожный знак")],
+        [KeyboardButton(text="Изменить текст /info")]
     ],
     resize_keyboard=True
 )
 
 
 admin_to_menu_kb = ReplyKeyboardMarkup(keyboard=[
-        [KeyboardButton(text="Asosiy menyuga qaytish ↩")]
+        [KeyboardButton(text="Вернуться на главную меню ↩")]
     ],
-    resize_keyboard=True
-)
-
-
-admin_after_ticket_kb = ReplyKeyboardMarkup(keyboard=[
-        [KeyboardButton(text="Savol qo'shish")],
-        [KeyboardButton(text="Asosiy menyuga qaytish ↩")],
-        [KeyboardButton(text="Info komandasini o'zgartirish")]
-        ],
     resize_keyboard=True
 )
 
 
 admin_road_signs_kb = ReplyKeyboardMarkup(keyboard=[
-        [KeyboardButton(text="⚠ Ogohlantiruvchi belgilar")],
-        [KeyboardButton(text="🔶 Imtiyoz belgilari")],
-        [KeyboardButton(text="⛔ Ta'qiqlovchi belgilar")],
-        [KeyboardButton(text="⬆ Buyuruvchi belgilar")],
-        [KeyboardButton(text="🛣 Axborot-ishora belgilari")],
-        [KeyboardButton(text="🛃 Servis belgilari")],
-        [KeyboardButton(text="🔙 Qo'shimcha axborot belgilari")],
-        [KeyboardButton(text="❌ Bekor qilish")]
+        [KeyboardButton(text="⚠ Предупреждающие знаки")],
+        [KeyboardButton(text="🔶 Знаки приоритета")],
+        [KeyboardButton(text="⛔ Запрещающие знаки")],
+        [KeyboardButton(text="⬆ Предписывающие знаки")],
+        [KeyboardButton(text="🛣 Знаки особых предписаний")],
+        [KeyboardButton(text="🛃 Знаки сервиса")],
+        [KeyboardButton(text="🔙 Знаки дополнительной информации")],
+        [KeyboardButton(text="🟠 Временные знаки")],
+        [KeyboardButton(text="🚦 Светофоры и сигналы регулировщика")],
+        [KeyboardButton(text="🚸 Опознавательные знаки")],
+        [KeyboardButton(text="☢️ Знаки опасности")],
+        [KeyboardButton(text="❌ Отменить")]
     ],
     resize_keyboard=True,
-    input_field_placeholder="Belgi turini tanlang"
+    input_field_placeholder="Выберите категорию знака"
 )
 
 
 confirm_kb = ReplyKeyboardMarkup(keyboard=[
-            [KeyboardButton(text="✅ Tasdiqlash"),
-             KeyboardButton(text="❌ Bekor qilish")]
+            [KeyboardButton(text="❌ Отменить"),
+             KeyboardButton(text="✅ Подтвердить")]
     ],
     resize_keyboard=True
 )
 
 
 after_checking_sign_kb = ReplyKeyboardMarkup(keyboard=[
-        [KeyboardButton(text="Belgi qo'shish ➕")],
-        [KeyboardButton(text="Asosiy menyuga qaytish ↩")]
+        [KeyboardButton(text="Добавить знак ➕")],
+        [KeyboardButton(text="Вернуться на главную меню ↩")]
     ],
     resize_keyboard=True
 )
 
 
 skip_kb = ReplyKeyboardMarkup(keyboard=[
-        [KeyboardButton(text="O'tkazib yuborish ⏩")]
+        [KeyboardButton(text="Пропустить ⏩")]
     ],
     resize_keyboard=True
 )
@@ -281,13 +276,13 @@ def answer_variants_kb(options: list[str]) -> ReplyKeyboardMarkup:
     kb.adjust(len(options))
     return kb.as_markup(
         resize_keyboard=True,
-        input_field_placeholder="To'g'ri javobni tanlang"
+        input_field_placeholder="Выбирите правильный вариант ответа"
     )
 
 
 ticket_not_found_kb = ReplyKeyboardMarkup(keyboard=[
-        [KeyboardButton(text="Bilet qo'shish ➕")],
-        [KeyboardButton(text="Asosiy menyuga qaytish ↩")]
+        [KeyboardButton(text="Добавить билет ➕")],
+        [KeyboardButton(text="Вернуться на главную меню ↩")]
     ],
     resize_keyboard=True
 )
@@ -311,8 +306,8 @@ def add_second_option_kb(options: list[str]) -> InlineKeyboardMarkup:
 
 
 ask_for_other_option_kb = ReplyKeyboardMarkup(keyboard=[
-        [KeyboardButton(text="Ha, qo'shamiz")],
-        [KeyboardButton(text="Yo'q, keyingi bosqichga o'tamiz")]
+        [KeyboardButton(text="Да, добавим")],
+        [KeyboardButton(text="Нет, перейдем к выбору правильного варианта")]
     ],
     resize_keyboard=True
 )
@@ -340,8 +335,8 @@ def confirm_question_kb(options: list[str], correct_answer: str) -> InlineKeyboa
     for opt in options:
         label = f"{opt} ✅" if opt == correct_answer else opt
         kb.button(text=label, callback_data="noop")
-    kb.button(text="Tasdiqlash ✅", callback_data="confirm_question")
-    kb.button(text="Bekor qilish ❌", callback_data="cancel_question")
+    kb.button(text="Отменить ❌", callback_data="cancel_question")
+    kb.button(text="Подтвердить ✅", callback_data="confirm_question")
     kb.adjust(len(options), 2)
     return kb.as_markup()
 
@@ -356,8 +351,8 @@ def after_add_question_ikb(options: list[str], correct_answer: str) -> InlineKey
 
 
 after_add_question_kb = ReplyKeyboardMarkup(keyboard=[
-        [KeyboardButton(text="Yana savol qo'shish ➕")],
-        [KeyboardButton(text="Asosiy menyuga qaytish ↩")]
+        [KeyboardButton(text="Добавить еще вопрос ➕")],
+        [KeyboardButton(text="Вернуться на главную меню ↩")]
     ],
     resize_keyboard=True
 )

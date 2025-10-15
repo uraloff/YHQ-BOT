@@ -10,7 +10,6 @@ from App.Database import requests as rq
 
 
 admin_router = Router()
-info_command_text = {}
 
 
 # -------------------------------------------------------------------------------------Управление админа--------------------------------------------------------------------------------------
@@ -22,10 +21,10 @@ async def add_admin(message: Message, bot: Bot):
     )
     await bot.send_message(
         chat_id=int(getenv('ADMIN_ID')),
-        text=f"<b>Yangi admin qo'shilmoqchi</b>\n\n"
-             f"<b>Ismi:</b> {message.from_user.full_name}\n"
-             f"<b>ID'si:</b> {message.from_user.id}\n"
-             f"<b>Foydalanuvchi nomi:</b> @{message.from_user.username}",
+        text=f"<b>Заявка на статус админа</b>\n\n"
+             f"<b>Имя:</b> {message.from_user.full_name}\n"
+             f"<b>ID:</b> {message.from_user.id}\n"
+             f"<b>Имя пользователя:</b> @{message.from_user.username}",
         reply_markup=kb.confirm_admin_kb(message.from_user.id)
     )
     await rq.handle_admin(telegram_id=message.from_user.id, full_name=message.from_user.full_name, username=message.from_user.username)
@@ -37,7 +36,7 @@ async def admin_confirm(callback: CallbackQuery, bot: Bot):
     user_id = int(callback.data.split(":")[1])
     admin = await rq.handle_admin(telegram_id=user_id, for_confirm=True)
     await callback.message.answer(
-        f"<b>{admin.full_name}</b> adminlikka muvaqqiyatli tasdiqlandi ✅",
+        f"<b>{admin.full_name}</b> успешно подтвежден админом ✅",
         reply_markup=kb.admin_menu_kb
     )
     await bot.send_message(
@@ -54,7 +53,7 @@ async def admin_cancel(callback: CallbackQuery, bot: Bot):
     for_admin_name = await rq.handle_admin(telegram_id=user_id)
     admin_name = for_admin_name.full_name
     await callback.message.answer(
-        f"<b>{admin_name}</b> adminlikka muvaqqiyatli bekor qilindi ✅",
+        f"<b>{admin_name}</b> успешно отклонен от админства ✅",
         reply_markup=kb.admin_menu_kb
     )
     await bot.send_message(
@@ -83,54 +82,102 @@ class AddTicket(StatesGroup):
     confirm_or_reject_ticket = State()
 
 
-@admin_router.message(F.text.in_(["Savol qo'shish", "Yana savol qo'shish ➕"]))
+@admin_router.message(F.text == "Добавить билет ➕")
+async def enter_ticket(message: Message, state: FSMContext):
+    await state.clear()
+    last_ticket = await rq.get_all_ticket_nums()
+    await message.answer(
+        f"Введите номер нового билета (например: <code>{last_ticket[-1] + 1}</code>)",
+        reply_markup=ReplyKeyboardRemove()
+    )
+    await state.set_state(AddTicket.enter_ticket)
+
+
+@admin_router.message(AddTicket.enter_ticket)
+async def check_ticket(message: Message, state: FSMContext):
+    if not message.text.isdigit():
+        await message.answer("Номер билета должен быть числом! [check_ticket()]")
+        return
+    
+    tickets = await rq.get_ticket_by_number(int(message.text))
+    if tickets:
+        await message.answer("Такой билет уже существует!", reply_markup=kb.ticket_not_found_kb)
+        return
+    await state.update_data(ticket_number=int(message.text))
+    data = await state.get_data()
+    await message.answer(
+        f"Вы хотите добавить билет с номером <b>{data['ticket_number']}</b>, верно?",
+        reply_markup=kb.confirm_kb
+    )
+    await state.set_state(AddTicket.confirm_or_reject_ticket)
+
+
+@admin_router.message(AddTicket.confirm_or_reject_ticket)
+async def confirm_or_reject_ticket(message: Message, state: FSMContext):
+    data = await state.get_data()
+    if message.text.strip() == "✅ Подтвердить":
+        await rq.add_ticket(ticket_num=data['ticket_number'])
+        await message.answer(f"<b>{data.get('ticket_number')}</b>-ый билет успешно добавлен в базу ✅",
+                             reply_markup=kb.admin_menu_kb
+        )
+        await state.clear()
+    elif message.text.strip() == "❌ Отменить":
+        await message.answer(f"<b>{data.get('ticket_number')}</b>-ый билет успешно отменен ❌",
+                             reply_markup=kb.admin_to_menu_kb
+        )
+        await state.clear()
+    else:
+        await message.answer("Неправильный выбор. Пожалуйста, повторите попытку ❌",
+                             reply_markup=kb.confirm_kb
+        )
+        return
+
+
+@admin_router.message(F.text.in_(["Добавить вопрос", "Добавить еще вопрос ➕"]))
 async def start_add_question(message: Message, state: FSMContext):
-    await message.answer("Qaysi bilet uchun savol qo'shmoqchisiz? Bilet sonini kiriting:", reply_markup=ReplyKeyboardRemove())
+    await message.answer("Для какого билета хотите добавить вопрос? Введите номер билета:", reply_markup=ReplyKeyboardRemove())
     await state.set_state(AddQuestion.enter_ticket_number)
 
 
 @admin_router.message(AddQuestion.enter_ticket_number)
 async def ticket_input(message: Message, state: FSMContext):
-    if message.text == "Bilet qo'shish ➕":
-        await state.set_state(AddTicket.enter_ticket)
-
     if not message.text.isdigit():
-        await message.answer("Bilet raqami sonda bo'lishi kerak!")
+        await message.answer("Номер билета должен быть числом! [ticket_input()]")
         return
 
     number = int(message.text)
     ticket = await rq.get_ticket_by_number(number)
     if not ticket:
         await state.clear()
-        await message.answer(f"{number}-bilet topilmadi!", reply_markup=kb.ticket_not_found_kb)
+        await message.answer(f"{number}-ый билет не найден!", reply_markup=kb.ticket_not_found_kb)
         return
 
     count = await rq.count_questions_in_ticket(ticket.id)
     if count >= 10:
-        await message.answer("Bu biletda allaqachon 10 ta savol mavjud.", reply_markup=kb.ticket_not_found_kb)
+        await message.answer("В этом билете уже существует 10 билетов!", reply_markup=kb.ticket_not_found_kb)
         return
 
     await state.update_data(ticket_id=ticket.id, ticket_number=number)
-    await message.answer("Yaxshi, endi savolingizni kiriting:")
+    await message.answer("Окей, теперь введите текст вопроса:")
     await state.set_state(AddQuestion.enter_question_text)
 
 
 @admin_router.message(AddQuestion.enter_question_text)
 async def question_text_input(message: Message, state: FSMContext):
     if not message.text:
-        await message.answer("Savolni matn sifatida kiriting!")
+        await message.answer("Вопрос должен быть текстом!")
         return
     
     q_number = await rq.get_next_question_number()
     await state.update_data(text=message.text, q_number=q_number, msg_options=[], kb_options=[])
-    await message.answer("Yaxshi endi variantlarni aniqlab olamiz. Birinchi variantni kiriting:")
+    await message.answer("Отлично, теперь определим варианты ответов. Введите текст первого варианта:")
     await state.set_state(AddQuestion.enter_first_option)
 
 
 @admin_router.message(AddQuestion.enter_first_option)
 async def add_first_option(message: Message, state: FSMContext):
     if not message.text:
-        await message.answer("Variantni matn sifatida kiriting!")
+        await message.answer("Вариант должен быть текстом!")
         return
 
     data = await state.get_data()
@@ -148,14 +195,14 @@ async def add_first_option(message: Message, state: FSMContext):
                          f"F1. {msg_options[-1]}\n\n\n"
                          f"@yhq_imtihon_bot",
                          reply_markup=kb.add_first_option_kb())
-    await message.answer(f"Endi ikkinchi variantni kiriting:")
+    await message.answer(f"Теперь введите текст второго варианта:")
     await state.set_state(AddQuestion.enter_second_option)
 
 
 @admin_router.message(AddQuestion.enter_second_option)
 async def add_second_option(message: Message, state: FSMContext):
     if not message.text:
-        await message.answer("Variantni matn sifatida kiriting!")
+        await message.answer("Вариант должен быть текстом!")
         return
 
     data = await state.get_data()
@@ -175,7 +222,7 @@ async def add_second_option(message: Message, state: FSMContext):
                          f"F2. {msg_options[1]}\n\n\n"
                          f"@yhq_imtihon_bot",
                          reply_markup=kb.add_second_option_kb(kb_options))
-    await message.answer("Yaxshi, yana variant qo'shamizmi?",
+    await message.answer("Отлично, еще добавим варианты ответов?",
                              reply_markup=kb.ask_for_other_option_kb)
     await state.set_state(AddQuestion.enter_other_options_or_no)
 
@@ -184,11 +231,11 @@ async def add_second_option(message: Message, state: FSMContext):
 async def enter_other_options_or_no(message: Message, state: FSMContext):
     data = await state.get_data()
     msg_options = data.get("msg_options", [])
-    if message.text == "Ha, qo'shamiz":
-        await message.answer("Yangi variantni kiriting:", reply_markup=ReplyKeyboardRemove())
+    if message.text == "Да, добавим":
+        await message.answer("Введите текст нового варианта:", reply_markup=ReplyKeyboardRemove())
         await state.set_state(AddQuestion.enter_other_options)
-    elif message.text == "Yo'q, keyingi bosqichga o'tamiz":
-        lines = [f"Chunarli, endi <b>{data.get('text')}</b> savolining to'g'ri javobini tanlang:\n\n"]
+    elif message.text == "Нет, перейдем к выбору правильного варианта":
+        lines = [f"Понятно, тогда выберите правильный вариант ответа вопроса <b>{data.get('text')}</b>:\n\n"]
         for i, opt in enumerate(msg_options, start=1):
             lines.append(f"F{i}. {opt}")
             if i < len(msg_options):
@@ -201,14 +248,14 @@ async def enter_other_options_or_no(message: Message, state: FSMContext):
         )
         await state.set_state(AddQuestion.choose_correct_option)
     else:
-        await message.answer("Noto'g'ri tanlov. Iltimos, qaytadan javobingizni kiriting ❌")
+        await message.answer("Неправильный выбор. Пожалуйста, повторно выберите вариант ответа ❌")
         return
 
 
 @admin_router.message(AddQuestion.enter_other_options)
 async def add_other_option(message: Message, state: FSMContext):
     if not message.text:
-        await message.answer("Variantni matn sifatida kiriting!")
+        await message.answer("Вариант должен быть текстом!")
         return
 
     data = await state.get_data()
@@ -219,7 +266,7 @@ async def add_other_option(message: Message, state: FSMContext):
     kb_options.append(f'F{int(kb_options[-1][1]) + 1}')
     await state.update_data(kb_options=kb_options)
     if len(msg_options) >= 5:
-        lines = [f"Endi <b>{data.get('text')}</b> savolining to'g'ri javobini tanlang:\n\n"]
+        lines = [f"Теперь выберите правильный вариант ответа вопроса <b>{data.get('text')}</b>:\n\n"]
         for i, opt in enumerate(msg_options, start=1):
             lines.append(f"F{i}. {opt}")
             if i < len(msg_options):
@@ -243,7 +290,7 @@ async def add_other_option(message: Message, state: FSMContext):
             text_msg,
             reply_markup=kb.add_other_option_kb(msg_options)
         )
-        await message.answer("Yaxshi, yana variant qo'shamizmi?",
+        await message.answer("Отлично, еще добавим варианты ответов?",
                                  reply_markup=kb.ask_for_other_option_kb)
         await state.set_state(AddQuestion.enter_other_options_or_no)
 
@@ -257,7 +304,7 @@ async def select_correct_option(message: Message, state: FSMContext):
     await state.update_data(correct_answer_kb=text)
 
     if text not in kb_options:
-        await message.answer("Iltimos, quyidagi variantlardan birini tanlang!")
+        await message.answer("Пожалуйста, выберите вариант ответа нажимая ниже кнопки!")
         return
 
     answer_index = kb_options.index(text)
@@ -277,14 +324,14 @@ async def select_correct_option(message: Message, state: FSMContext):
         text_msg,
         reply_markup=kb.identify_correct_option_kb(kb_options, correct_answer=text)
     )
-    await message.answer("Yaxshi, endi rasm yuboring (majburiy emas)",
+    await message.answer("Отлично, теперь отправьте фото (необязательно):",
         reply_markup=kb.skip_kb
     )
 
     await state.set_state(AddQuestion.send_photo)
 
 
-@admin_router.message(AddQuestion.send_photo, F.text == "O'tkazib yuborish ⏩")
+@admin_router.message(AddQuestion.send_photo, F.text == "Пропустить ⏩")
 async def skip_photo(message: Message, state: FSMContext):
     data = await state.get_data()
     await state.update_data(photo_id='-')
@@ -295,7 +342,7 @@ async def skip_photo(message: Message, state: FSMContext):
     q_text = data.get('text')
     q_number = data.get("q_number")
 
-    lines = [f"Zo'r, endi kiritgan ma'lumotlaringizni tasdiqlang\n\n<b>{q_number}-savol</b>\n\n{q_text}\n\n"]
+    lines = [f"Отлично, теперь подтвердите ваши введенные данные\n\n<b>{q_number}-savol</b>\n\n{q_text}\n\n"]
     for i, opt in enumerate(msg_options, start=1):
         lines.append(f"F{i}. {opt}")
         if i < len(msg_options):
@@ -323,7 +370,7 @@ async def handle_photo(message: Message, state: FSMContext):
     q_text = data.get('text')
     q_number = data.get("q_number")
 
-    lines = [f"Zo'r, endi kiritgan ma'lumotlaringizni tasdiqlang\n\n<b>{q_number}-savol</b>\n\n{q_text}\n\n"]
+    lines = [f"Отлично, теперь подтвердите ваши введенные данные\n\n<b>{q_number}-savol</b>\n\n{q_text}\n\n"]
     for i, opt in enumerate(msg_options, start=1):
         lines.append(f"F{i}. {opt}")
         if i < len(msg_options):
@@ -345,7 +392,8 @@ async def finalize_question(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     photo_id = data.get("photo_id")
     if callback.data == "cancel_question":
-        await callback.message.edit_text("Yangi savol muvaffaqiyatli bekor qilindi ❌", reply_markup=kb.after_add_question_kb)
+        await callback.message.delete()
+        await callback.message.answer("Новый вопрос успешно отменен ❌", reply_markup=kb.after_add_question_kb)
         await state.clear()
         return
 
@@ -361,7 +409,7 @@ async def finalize_question(callback: CallbackQuery, state: FSMContext):
     if photo_id == '-':
         await callback.message.delete()
         await callback.message.answer('🎉', reply_markup=kb.after_add_question_kb)
-        await callback.message.answer(f"<b>Yangi savol muvaffaqiyatli qo'shildi ✅</b>\n\n<b>Bilet:</b> {data['ticket_number']}\n<b>Savol raqami:</b> {data['q_number']}\n<b>Savol:</b> {data['text']}",
+        await callback.message.answer(f"<b>Новый вопрос успешно добавился ✅</b>\n\n<b>Билет:</b> {data['ticket_number']}\n<b>Номер вопроса:</b> {data['q_number']}\n<b>Вопрос:</b> {data['text']}",
                                     reply_markup=kb.after_add_question_ikb(data['kb_options'], data['correct_answer_kb']))
         await state.clear()
     elif photo_id != '-':
@@ -369,56 +417,10 @@ async def finalize_question(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer('🎉', reply_markup=kb.after_add_question_kb)
         await callback.message.answer_photo(
             photo=photo_id,
-            caption=f"<b>Yangi savol muvaffaqiyatli qo'shildi ✅</b>\n\n<b>Bilet:</b> {data['ticket_number']}\n<b>Savol raqami:</b> {data['q_number']}\n<b>Savol:</b> {data['text']}",
+            caption=f"<b>Новый вопрос успешно добавился ✅</b>\n\n<b>Билет:</b> {data['ticket_number']}\n<b>Номер вопроса:</b> {data['q_number']}\n<b>Вопрос:</b> {data['text']}",
             reply_markup=kb.after_add_question_ikb(data['kb_options'], data['correct_answer_kb'])
         )
         await state.clear()
-
-
-@admin_router.message(F.text == "Bilet qo'shish ➕")
-async def enter_ticket(message: Message, state: FSMContext):
-    last_ticket = await rq.get_all_ticket_nums()
-    await message.answer(f"Yangi bilet raqamini kiriting (masalan: <code>{last_ticket[-1] + 1}</code>)", reply_markup=ReplyKeyboardRemove())
-    await state.set_state(AddTicket.enter_ticket)
-
-@admin_router.message(AddTicket.enter_ticket)
-async def check_ticket(message: Message, state: FSMContext):
-    if not message.text.isdigit():
-        await message.answer("Bilet raqami sonda bo'lishi kerak!")
-        return
-    
-    tickets = await rq.get_ticket_by_number(int(message.text))
-    if tickets:
-        await message.answer("Bunday bilet allaqachon mavjud!", reply_markup=kb.ticket_not_found_kb)
-        return
-    await state.update_data(ticket_number=int(message.text))
-    data = await state.get_data()
-    await message.answer(
-        f"Siz <b>{data['ticket_number']}</b>-raqamli bilet qo'shmoqchisiz, to'g'rimi?",
-        reply_markup=kb.confirm_kb
-    )
-    await state.set_state(AddTicket.confirm_or_reject_ticket)
-
-
-@admin_router.message(AddTicket.confirm_or_reject_ticket)
-async def confirm_or_reject_ticket(message: Message, state: FSMContext):
-    data = await state.get_data()
-    if message.text.strip() == "✅ Tasdiqlash":
-        await rq.add_ticket(ticket_num=data['ticket_number'])
-        await message.answer(f"<b>{data.get('ticket_number')}</b>-raqamli bilet bazaga muvaffaqiyatli qo'shildi ✅",
-                             reply_markup=kb.admin_after_ticket_kb
-        )
-        await state.clear()
-    elif message.text.strip() == "❌ Bekor qilish":
-        await message.answer(f"<b>{data.get('ticket_number')}</b>-raqamli bilet muvaffaqiyatli bekor qilindi ❌",
-                             reply_markup=kb.admin_to_menu_kb
-        )
-        await state.clear()
-    else:
-        await message.answer("Noto'g'ri tanlov. Iltimos, qaytadan tanlang ❌",
-                             reply_markup=kb.confirm_kb
-        )
-        return
 
 
 # ---------------------------------------------------------------------------------Добавление дорожных знаков----------------------------------------------------------------------------------
@@ -430,10 +432,10 @@ class AddRoadSignState(StatesGroup):
     check_sign_data = State()
 
 
-@admin_router.message(F.text.in_({"Yo'l belgisini qo'shish", "Belgi qo'shish ➕"}))
+@admin_router.message(F.text.in_({"Добавить дорожный знак", "Добавить знак ➕"}))
 async def add_road_sign(message: Message, state: FSMContext):
     await message.answer(
-        "Belgi turini tanlang:",
+        "Выберите категория знака:",
         reply_markup=kb.admin_road_signs_kb
     )
     await state.set_state(AddRoadSignState.select_type)
@@ -443,21 +445,21 @@ async def add_road_sign(message: Message, state: FSMContext):
 async def select_type(message: Message, state: FSMContext):
     if message.content_type != ContentType.TEXT:
         await message.answer(
-            "Iltimos, belgi turini matn sifatida kiriting!"
+            "Категория знака должна быть текстом!"
         )
         return
 
 
-    if message.text.strip() == "❌ Bekor qilish":
+    if message.text.strip() == "❌ Отменить":
         await message.answer(
-                "Yo'l belgisini qo'shish jarayoni bekor qilindi ❌",
+                "Процесс добавления дорожного знака отменен ❌",
                 reply_markup=kb.admin_to_menu_kb
             )
         await state.clear()
     else:
         await state.update_data(sign_type=message.text)
         await message.answer(
-                "Endi belgini nomini kiriting: <i>(masalan: 2.1. Asosiy yo'l)</i>",
+                "Теперь добавьте название знака: <i>(masalan: 2.1. Asosiy yo'l)</i>",
                 reply_markup=ReplyKeyboardRemove()
             )
         await state.set_state(AddRoadSignState.enter_sign_name)
@@ -467,14 +469,14 @@ async def select_type(message: Message, state: FSMContext):
 async def enter_sign_name(message: Message, state: FSMContext):
     if message.content_type != ContentType.TEXT:
         await message.answer(
-            "Iltimos, belgi nomini matn sifatida kiriting!"
+            "Название знака должно быть текстом!"
         )
         return
 
 
     await state.update_data(sign_name=message.text)
     await message.answer(
-            "Yaxshi, endi belgi haqida qisqacha ma'lumot bering (majburiy emas):",
+            "Отлично, теперь немножко опишите этот знак (необязательно):",
             reply_markup=kb.skip_kb
         )
     await state.set_state(AddRoadSignState.enter_sign_description)
@@ -484,37 +486,37 @@ async def enter_sign_name(message: Message, state: FSMContext):
 async def enter_sign_description(message: Message, state: FSMContext):
     if message.content_type != ContentType.TEXT:
         await message.answer(
-            "Iltimos, belgi ma'lumotini matn sifatida kiriting!"
+            "Описание знака должно быть текстом!"
         )
         return
 
 
-    if message.text.strip() == "O'tkazib yuborish ⏩":
+    if message.text.strip() == "Пропустить ⏩":
         await state.update_data(sign_description=None)
         await message.answer(
-                "Chunarli, endi belgini rasmini yuboring (majburiy emas):",
+                "Понятно, теперь отправьте фото знака (необязательно):",
                 reply_markup=kb.skip_kb
             )
         await state.set_state(AddRoadSignState.send_sign_photo)
     else:
         await state.update_data(sign_description=message.text)
         await message.answer(
-                "Oxirgisi, endi belgini rasmini yuboring (majburiy emas):",
+                "Напоследок, теперь отправьте фото знака (необязательно):",
                 reply_markup=kb.skip_kb
             )
         await state.set_state(AddRoadSignState.send_sign_photo)
 
 
-@admin_router.message(AddRoadSignState.send_sign_photo, F.text == "O'tkazib yuborish ⏩")
+@admin_router.message(AddRoadSignState.send_sign_photo, F.text == "Пропустить ⏩")
 async def skip_sign_photo(message: Message, state: FSMContext):
     data = await state.get_data()
     await state.update_data(sign_photo=None)
     await message.answer(
-        f"Chunarli, endi bazaga qo'shishdan oldin kiritgan ma'lumotlaringizni tasdiqlang:\n\n"
-        f"<b>Belgi rasmi:</b> ❌\n"
-        f"<b>Belgi turi:</b> {data.get('sign_type')}\n"
-        f"<b>Belgi nomi:</b> {data.get('sign_name')}\n"
-        f"<b>Belgi ma'lumoti:</b> {data.get('sign_description') if data.get('sign_description') else '-'}",
+        f"Понятно, теперь перед тем как добавить в базу подтвердите введеные вами данные:\n\n"
+        f"<b>Фото знака:</b> ❌\n"
+        f"<b>Категория знака:</b> {data.get('sign_type')}\n"
+        f"<b>Название знака:</b> {data.get('sign_name')}\n"
+        f"<b>Описание знака:</b> {data.get('sign_description') if data.get('sign_description') else '-'}",
         reply_markup=kb.confirm_kb
     )
     await state.set_state(AddRoadSignState.check_sign_data)
@@ -527,10 +529,10 @@ async def handle_sign_photo(message: Message, state: FSMContext):
     await state.update_data(sign_photo=file_id)
     await message.answer_photo(
         photo=file_id,
-        caption=f"Zo'r, endi bazaga qo'shishdan oldin kiritgan ma'lumotlaringizni tasdiqlang:\n\n"
-                f"<b>Belgi turi:</b> {data.get('sign_type')}\n"
-                f"<b>Belgi nomi:</b> {data.get('sign_name')}\n"
-                f"<b>Belgi ma'lumoti:</b> {data.get('sign_description') if data.get('sign_description') else '-'}",
+        caption=f"Отлично, теперь перед тем как добавить в базу подтвердите введеные вами данные:\n\n"
+                f"<b>Категория знака:</b> {data.get('sign_type')}\n"
+                f"<b>Название знака:</b> {data.get('sign_name')}\n"
+                f"<b>Описание знака:</b> {data.get('sign_description') if data.get('sign_description') else '-'}",
         reply_markup=kb.confirm_kb
     )
     await state.set_state(AddRoadSignState.check_sign_data)
@@ -539,24 +541,24 @@ async def handle_sign_photo(message: Message, state: FSMContext):
 @admin_router.message(AddRoadSignState.check_sign_data)
 async def check_sign_data(message: Message, state: FSMContext):
     data = await state.get_data()
-    if message.text.strip() == "✅ Tasdiqlash":
+    if message.text.strip() == "✅ Подтвердить":
         await rq.add_road_sign(
             sign_type=data.get('sign_type'),
             sign_name=data.get('sign_name'),
             sign_description=data.get('sign_description'),
             sign_photo=data.get('sign_photo')
         )
-        await message.answer(f"<b>{data.get('sign_name')}</b> yo'l belgisi bazaga muvaffaqiyatli qo'shildi ✅",
+        await message.answer(f"Знак <b>{data.get('sign_name')}</b> успешно добавлен ✅",
                              reply_markup=kb.after_checking_sign_kb
         )
         await state.clear()
-    elif message.text.strip() == "❌ Bekor qilish":
-        await message.answer(f"<b>{data.get('sign_name')}</b> yo'l belgisi muvaffaqiyatli bekor qilindi ❌",
+    elif message.text.strip() == "❌ Отменить":
+        await message.answer(f"Знак <b>{data.get('sign_name')}</b> успешно отменен ❌",
                              reply_markup=kb.after_checking_sign_kb
         )
         await state.clear()
     else:
-        await message.answer("Noto'g'ri tanlov. Iltimos, qaytadan tanlang ❌",
+        await message.answer("Неправильный выбор, повторите попытку ❌",
                              reply_markup=kb.confirm_kb
         )
         return
@@ -566,10 +568,10 @@ async def check_sign_data(message: Message, state: FSMContext):
 class ChangeInfoCommand(StatesGroup):
     enter_info_text = State()
 
-@admin_router.message(F.text == "Info komandasini o'zgartirish")
+@admin_router.message(F.text == "Изменить текст /info")
 async def change_info_command(message: Message, state: FSMContext):
     await message.answer(
-        "Iltimos, yangi /info komandasini matn sifatida kiriting:",
+        "Введите текст для команды /info:",
         reply_markup=ReplyKeyboardRemove()
     )
     await state.set_state(ChangeInfoCommand.enter_info_text)
@@ -577,7 +579,7 @@ async def change_info_command(message: Message, state: FSMContext):
 @admin_router.message(ChangeInfoCommand.enter_info_text)
 async def enter_info_text(message: Message, state: FSMContext):
     if message.content_type != ContentType.TEXT:
-        await message.answer("Iltimos, matn sifatida kiriting!")
+        await message.answer("Должен быть текст!")
         return
 
     text_to_save = message.html_text if message.entities else message.text
@@ -586,6 +588,6 @@ async def enter_info_text(message: Message, state: FSMContext):
 
     await state.clear()
     await message.answer(
-        "✅ /info komandasining matni muvaffaqiyatli yangilandi!",
+        "✅ Текст команды /info успешно обновился!",
         reply_markup=kb.admin_to_menu_kb
     )
