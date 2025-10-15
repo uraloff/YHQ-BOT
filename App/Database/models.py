@@ -1,4 +1,3 @@
-import ssl
 import enum
 from os import getenv
 from datetime import datetime
@@ -14,12 +13,7 @@ db_url = getenv("DB_URL")
 if not db_url:
     raise RuntimeError("DB_URL not found in environment variables")
 
-ssl_context = ssl.create_default_context()
-ssl_context.check_hostname = False
-ssl_context.verify_mode = ssl.CERT_NONE
-
-
-engine = create_async_engine(db_url, connect_args={"ssl": ssl_context})
+engine = create_async_engine(db_url)
 async_session = async_sessionmaker(engine)
 
 

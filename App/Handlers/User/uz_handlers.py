@@ -1,7 +1,9 @@
 from os import getenv
+from datetime import datetime, time, timedelta, timezone
 
 from aiogram import Router, F, Bot
 from aiogram.enums import ParseMode
+from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, InputMediaPhoto
 
 from App.Database import requests as rq
@@ -13,16 +15,30 @@ user_question_cache = {}
 
 
 # -----------------------------------------------------------------------------------------Главное меню---------------------------------------------------------------------------------------
-@uz_user_router.message(F.text.in_({'/start', '/user_mode', '/admin', 'Asosiy menyuga qaytish ↩'}))
+@uz_user_router.message(F.text.in_({'/start', '/user_mode', '/admin', 'Вернуться на главную меню ↩'}))
 @uz_user_router.callback_query(F.data.in_({'uz_main_menu', 'no_pass'}))
 @uz_user_router.callback_query(F.data.startswith("to_main_menu_after_test:"))
-async def uz_main_menu(message: Message | CallbackQuery, bot: Bot):
+async def uz_main_menu(message: Message | CallbackQuery, bot: Bot, state: FSMContext):
+    await state.clear()
     await commands.set_commands(bot, message.from_user.id)
     await rq.get_or_create_user(telegram_id=message.from_user.id, full_name=message.from_user.full_name, username=message.from_user.username if message.from_user.username else None)
+    
+    tz = timezone(timedelta(hours=5))  # GMT+5 (Узбекистан)
+    now = datetime.now(tz).time()
+
+    if time(0, 0) <= now < time(6, 0):
+        greeting = "👋 Доброй ночи"
+    elif time(6, 0) <= now < time(12, 0):
+        greeting = "👋 Доброе утро"
+    elif time(12, 0) <= now < time(18, 0):
+        greeting = "👋 Добрый день"
+    else:
+        greeting = "👋 Добрый вечер"
+    
     if isinstance(message, Message):
-        if ((message.from_user.id == int(getenv('ADMIN_ID')) or await rq.check_confirmed_admin(message.from_user.id)) and (message.text == '/admin' or message.text == 'Asosiy menyuga qaytish ↩')) and not message.text == '/user_mode':
+        if ((message.from_user.id == int(getenv('ADMIN_ID')) or await rq.check_confirmed_admin(message.from_user.id)) and (message.text == '/admin' or message.text == 'Вернуться на главную меню ↩')) and not message.text == '/user_mode':
             await message.answer(
-                f"👋 Salom, <b>{message.from_user.full_name}</b>! ",
+                f"{greeting}, <b>{message.from_user.full_name}</b>!",
                 reply_markup=kb.admin_menu_kb
             )
         elif (message.from_user.id != int(getenv('ADMIN_ID')) and not await rq.check_confirmed_admin(message.from_user.id)) and message.text == '/admin':
