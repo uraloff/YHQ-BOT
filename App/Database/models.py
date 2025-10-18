@@ -1,6 +1,6 @@
+import os
 import ssl
 import enum
-from os import getenv
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -9,19 +9,25 @@ from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
 from sqlalchemy.ext.asyncio import AsyncAttrs, create_async_engine, async_sessionmaker
 from sqlalchemy import DateTime, String, BigInteger, ForeignKey, Integer, Enum, Boolean, Text
 
+ENVIRONMENT = os.getenv('BOT_MODE', 'dev')
+dotenv_path = os.path.join(os.path.dirname(__file__), f'.env.{ENVIRONMENT}')
 
-load_dotenv()
-db_url = getenv("DB_URL")
+load_dotenv(dotenv_path)
+
+db_url = os.getenv("DB_URL")
 if not db_url:
     raise RuntimeError("DB_URL not found in environment variables")
 
-ssl_context = ssl.create_default_context()
-ssl_context.check_hostname = False
-ssl_context.verify_mode = ssl.CERT_NONE
+if ENVIRONMENT == 'prod':
+    ssl_context = ssl.create_default_context()
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
 
-
-engine = create_async_engine(db_url, connect_args={"ssl": ssl_context})
-async_session = async_sessionmaker(engine)
+    engine = create_async_engine(db_url, connect_args={"ssl": ssl_context})
+    async_session = async_sessionmaker(engine)
+else:
+    engine = create_async_engine(db_url)
+    async_session = async_sessionmaker(engine)
 
 
 class Base(AsyncAttrs, DeclarativeBase):

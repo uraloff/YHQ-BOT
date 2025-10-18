@@ -23,7 +23,7 @@ async def uz_main_menu(message: Message | CallbackQuery, bot: Bot, state: FSMCon
     await commands.set_commands(bot, message.from_user.id)
     await rq.get_or_create_user(telegram_id=message.from_user.id, full_name=message.from_user.full_name, username=message.from_user.username if message.from_user.username else None)
     
-    tz = timezone(timedelta(hours=5))  # GMT+5 (Узбекистан)
+    tz = timezone(timedelta(hours=5))
     now = datetime.now(tz).time()
 
     if time(0, 0) <= now < time(6, 0):

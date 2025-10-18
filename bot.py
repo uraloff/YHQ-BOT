@@ -1,4 +1,4 @@
-from os import getenv
+import os
 import logging, asyncio
 from dotenv import load_dotenv
 
@@ -16,15 +16,16 @@ logging.basicConfig(
     format='%(asctime)s — %(name)s — %(levelname)s — %(message)s'
 )
 
+ENVIRONMENT = os.getenv('BOT_MODE', 'dev')
+dotenv_path = os.path.join(os.path.dirname(__file__), f'.env.{ENVIRONMENT}')
 
 async def main():
-    load_dotenv()
-    # await async_main()
+    load_dotenv(dotenv_path)
 
     logging.info('Загрузка информации...')
 
     bot = Bot(
-        token=getenv('TOKEN'),
+        token=os.getenv('TOKEN'),
         default=DefaultBotProperties(parse_mode=ParseMode.HTML)
     )
     dp = Dispatcher()
