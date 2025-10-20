@@ -122,7 +122,9 @@ async def add_road_sign(sign_type: str, sign_name: str, sign_description: str | 
 async def get_signs_by_type(sign_type: str):
     async with async_session() as session:
         result = await session.scalars(
-            select(RoadSign).where(RoadSign.type == sign_type).order_by(RoadSign.name)
+            select(RoadSign)
+            .where(RoadSign.type == sign_type)
+            .order_by(RoadSign.id)
         )
         return result.all()
     

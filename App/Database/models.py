@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncAttrs, create_async_engine, async_sessio
 from sqlalchemy import DateTime, String, BigInteger, ForeignKey, Integer, Enum, Boolean, Text
 
 ENVIRONMENT = os.getenv('BOT_MODE', 'dev')
-dotenv_path = os.path.join(os.path.dirname(__file__), f'.env.{ENVIRONMENT}')
+dotenv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), f'.env.{ENVIRONMENT}')
 
 load_dotenv(dotenv_path)
 
