@@ -23,13 +23,17 @@ uz_exam_kb = InlineKeyboardMarkup(inline_keyboard=[
 
 
 uz_road_signs_kb = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text="⚠ Ogohlantiruvchi belgilar", callback_data='uz:warning_signs')],
+    [InlineKeyboardButton(text="⚠️ Ogohlantiruvchi belgilar", callback_data='uz:warning_signs')],
     [InlineKeyboardButton(text="🔶 Imtiyoz belgilari", callback_data='uz:privilege_signs')],
     [InlineKeyboardButton(text="⛔ Ta'qiqlovchi belgilar", callback_data='uz:prohibition_signs')],
     [InlineKeyboardButton(text="⬆ Buyuruvchi belgilar", callback_data='uz:guide_signs')],
     [InlineKeyboardButton(text="🛣 Axborot-ishora belgilari", callback_data='uz:information_signs')],
     [InlineKeyboardButton(text="🛃 Servis belgilari", callback_data='uz:service_signs')],
     [InlineKeyboardButton(text="🔙 Qo'shimcha axborot belgilari", callback_data='uz:additional_information_signs')],
+    [InlineKeyboardButton(text="🟠 Vaqtinchalik belgilar", callback_data='uz:temporary_signs')],
+    [InlineKeyboardButton(text="🚦 Svetoforlar va trafik boshqaruvchisi", callback_data='uz:traffic_lights_signs')],
+    [InlineKeyboardButton(text="🚸 Taniqlik belgilari", callback_data='uz:identification_signs')],
+    [InlineKeyboardButton(text="☢️ Xavflilik belgilari", callback_data='uz:danger_signs')],
     [InlineKeyboardButton(text="🏠 Asosiy menyu", callback_data='uz_main_menu')]
 ])
 
@@ -228,7 +232,7 @@ admin_to_menu_kb = ReplyKeyboardMarkup(keyboard=[
 
 
 admin_road_signs_kb = ReplyKeyboardMarkup(keyboard=[
-        [KeyboardButton(text="⚠ Предупреждающие знаки")],
+        [KeyboardButton(text="⚠️ Предупреждающие знаки")],
         [KeyboardButton(text="🔶 Знаки приоритета")],
         [KeyboardButton(text="⛔ Запрещающие знаки")],
         [KeyboardButton(text="⬆ Предписывающие знаки")],

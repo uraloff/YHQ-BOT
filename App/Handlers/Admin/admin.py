@@ -457,7 +457,31 @@ async def select_type(message: Message, state: FSMContext):
             )
         await state.clear()
     else:
-        await state.update_data(sign_type=message.text)
+
+        match message.text.strip():
+            case "⚠️ Предупреждающие знаки":
+                await state.update_data(sign_type='warning_signs')
+            case "🔶 Знаки приоритета":
+                await state.update_data(sign_type='privilege_signs')
+            case "⛔ Запрещающие знаки":
+                await state.update_data(sign_type='prohibition_signs')
+            case "⬆ Предписывающие знаки":
+                await state.update_data(sign_type='guide_signs')
+            case "🛣 Знаки особых предписаний":
+                await state.update_data(sign_type='information_signs')
+            case "🛃 Знаки сервиса":
+                await state.update_data(sign_type='service_signs')
+            case "🔙 Знаки дополнительной информации":
+                await state.update_data(sign_type='additional_information_signs')
+            case "🟠 Временные знаки":
+                await state.update_data(sign_type='temporary_signs')
+            case "🚦 Светофоры и сигналы регулировщика":
+                await state.update_data(sign_type='traffic_lights_signs')
+            case "🚸 Опознавательные знаки":
+                await state.update_data(sign_type='identification_signs')
+            case "☢️ Знаки опасности":
+                await state.update_data(sign_type='danger_signs')
+                
         await message.answer(
                 "Теперь добавьте название знака: <i>(masalan: 2.1. Asosiy yo'l)</i>",
                 reply_markup=ReplyKeyboardRemove()

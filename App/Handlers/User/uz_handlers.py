@@ -1221,19 +1221,8 @@ user_sign_cache = {}  # user_id: {"type": ..., "signs": [...], "index": int}
 
 @uz_user_router.callback_query(F.data.startswith("uz:"))
 async def show_first_sign(callback: CallbackQuery):
-    sign_type = callback.data.split(":", 1)[1]
-    
-    signs_dict = {
-        "warning_signs": "⚠ Ogohlantiruvchi belgilar",
-        "privilege_signs": "🔶 Imtiyoz belgilari",
-        "prohibition_signs": "⛔ Ta'qiqlovchi belgilar",
-        "guide_signs": "⬆ Buyuruvchi belgilar",
-        "information_signs": "🛣 Axborot-ishora belgilari",
-        "service_signs": "🛃 Servis belgilari",
-        "additional_information_signs": "🔙 Qo'shimcha axborot belgilari"
-    }
-    
-    signs = await rq.get_signs_by_type(signs_dict[sign_type])
+    sign_type = callback.data.split(":")[-1]
+    signs = await rq.get_signs_by_type(sign_type)
 
     if not signs:
         await callback.answer("Bu turdagi belgilar hozircha mavjud emas.", show_alert=True)
@@ -1246,18 +1235,34 @@ async def show_first_sign(callback: CallbackQuery):
     }
 
     sign = signs[0]
-    caption = f"<b>{sign.name}</b>{'\n\n' + sign.description if not sign.description == '-' else ''}"
-    await callback.message.delete()
-    await callback.answer()
-    await callback.message.answer_photo(
-        photo=sign.photo_id,
-        caption=caption,
-        reply_markup=kb.sign_nav_kb(0, len(signs))
-    )
+    
+    if sign.photo_id is None:
+        if sign.description == '-':
+            await callback.message.edit_text(f"<b>{sign.name}</b>", reply_markup=kb.sign_nav_kb(0, len(signs)))
+        else:
+            await callback.message.edit_text(f"<b>{sign.name}</b>\n\n{sign.description}", reply_markup=kb.sign_nav_kb(0, len(signs)))
+    else:
+        if sign.description == '-':
+            await callback.message.delete()
+            await callback.answer()
+            await callback.message.answer_photo(
+                photo=sign.photo_id,
+                caption=f"<b>{sign.name}</b>",
+                reply_markup=kb.sign_nav_kb(0, len(signs))
+            )
+        else:
+            await callback.message.delete()
+            await callback.answer()
+            await callback.message.answer_photo(
+                photo=sign.photo_id,
+                caption=f"<b>{sign.name}</b>\n\n{sign.description}",
+                reply_markup=kb.sign_nav_kb(0, len(signs))
+            )
 
 
 @uz_user_router.callback_query(F.data.in_(["prev_sign", "next_sign"]))
 async def navigate_signs(callback: CallbackQuery):
+    await callback.answer()
     user_id = callback.from_user.id
     cache = user_sign_cache.get(user_id)
     if not cache:
@@ -1273,20 +1278,48 @@ async def navigate_signs(callback: CallbackQuery):
     index = cache["index"]
     sign = signs[index]
 
-    caption = f"<b>{sign.name}</b>{'\n\n' + sign.description if not sign.description == '-' else ''}"
-    try:
-        await callback.answer()
-        await callback.message.edit_media(
-            media=InputMediaPhoto(media=sign.photo_id, caption=caption),
-            reply_markup=kb.sign_nav_kb(index, len(signs))
-        )
-    except Exception:
-        await callback.message.delete()
-        await callback.message.answer_photo(
-            photo=sign.photo_id,
-            caption=caption,
-            reply_markup=kb.sign_nav_kb(index, len(signs))
-        )
+    if sign.photo_id is None:
+        try:
+            if sign.description == '-':
+                await callback.message.edit_text(f"<b>{sign.name}</b>", reply_markup=kb.sign_nav_kb(index, len(signs)))
+            else:
+                await callback.message.edit_text(f"<b>{sign.name}</b>\n\n{sign.description}", reply_markup=kb.sign_nav_kb(index, len(signs)))
+        except Exception:
+            if sign.description == '-':
+                await callback.message.delete()
+                await callback.message.answer(f"<b>{sign.name}</b>", reply_markup=kb.sign_nav_kb(index, len(signs)))
+            else:
+                await callback.message.delete()
+                await callback.message.answer(f"<b>{sign.name}</b>\n\n{sign.description}", reply_markup=kb.sign_nav_kb(index, len(signs)))
+    else:
+        try:
+            if sign.description == '-':
+                media = InputMediaPhoto(media=sign.photo_id, caption=f"<b>{sign.name}</b>")
+                await callback.message.edit_media(
+                    media=media,
+                    reply_markup=kb.sign_nav_kb(index, len(signs))
+                )
+            else:
+                media = InputMediaPhoto(media=sign.photo_id, caption=f"<b>{sign.name}</b>\n\n{sign.description}")
+                await callback.message.edit_media(
+                    media=media,
+                    reply_markup=kb.sign_nav_kb(index, len(signs))
+                )
+        except Exception:
+            if sign.description == '-':
+                await callback.message.delete()
+                await callback.message.answer_photo(
+                    photo=sign.photo_id,
+                    caption=f"<b>{sign.name}</b>",
+                    reply_markup=kb.sign_nav_kb(index, len(signs))
+                )
+            else:
+                await callback.message.delete()
+                await callback.message.answer_photo(
+                    photo=sign.photo_id,
+                    caption=f"<b>{sign.name}</b>\n\n{sign.description}",
+                    reply_markup=kb.sign_nav_kb(index, len(signs))
+                )
 
 
 @uz_user_router.message(F.text == '/info')
