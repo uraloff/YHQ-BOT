@@ -631,7 +631,7 @@ async def save_answer(callback: CallbackQuery):
         return
     
     await rq.add_saved_question(callback.from_user.id, cache["question_id"])
-    await callback.answer("✔ Javobingiz muvaffaqiyatli saqlandi!", show_alert=True)
+    await callback.answer("✔ Savol muvaffaqiyatli saqlandi!", show_alert=True)
 
 
 @uz_user_router.callback_query(F.data == 'ticket_test_results')
@@ -1060,19 +1060,19 @@ async def saved_navigate_question(callback: CallbackQuery):
         if i < (len(question.options) - 1):
             lines.append("———————————————")
     lines.append("\n\n@yhq_imtihon_bot")
+    
+    user_question_cache[callback.from_user.id] = {
+        "position": position
+    }
 
     question_text = "\n".join(lines)
     keyboard = kb.build_question_keyboard(
         shuffled_options=question.options,
         mode='saved',
-        position=0,
+        position=position,
         total_questions=len(questions_list),
         correct_index=correct_index
     )
-
-    user_question_cache[callback.from_user.id] = {
-        "position": position
-    }
 
     new_has_photo = question.photo_id != '-'
 
@@ -1160,10 +1160,13 @@ async def delete_saved_question(callback: CallbackQuery):
         keyboard = kb.build_question_keyboard(
             shuffled_options=new_question.options,
             mode='saved',
-            position=0,
-            total_questions=len(questions_list),
+            position=position,
+            total_questions=len(updated_list),
             correct_index=correct_index
         )
+
+        cache["position"] = position
+        user_question_cache[callback.from_user.id] = cache
 
         try:
             if not previous_has_photo and not new_has_photo:
