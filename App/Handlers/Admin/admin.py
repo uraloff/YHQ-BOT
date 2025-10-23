@@ -64,6 +64,44 @@ async def admin_cancel(callback: CallbackQuery, bot: Bot):
     await rq.handle_admin(telegram_id=user_id, for_cancel=True)
 
 
+# ----------------------------------------------------------------------------------------Аналитика-------------------------------------------------------------------------------------
+@admin_router.message(F.text == "📊 Аналитика")
+async def enter_ticket(message: Message):
+    overall_users = await rq.get_all_users()
+    weekly_users = await rq.get_users_last_week()
+
+    await message.answer(
+        f"👥 <b>Всего пользователей в боте:</b> {len(overall_users)}\n"
+        f"📈 <b>Недельный приток:</b> +{weekly_users}",
+        reply_markup=kb.admin_analytics_kb
+    )
+
+
+@admin_router.message(F.text == "Рекламный отчет")
+async def show_analytics(message: Message):
+    data = await rq.get_referral_stats()
+    numerate = 0
+    if not data:
+        await message.answer("Тут пока пусто(")
+        return
+
+    text = "📊 <b>Реферальная аналитика</b>\n\n"
+    for code, count in data:
+        percent = await rq.get_referral_percentage(code)
+        text += f"{numerate + 1}. <b>{code}:</b> {count} ({percent}%)\n"
+
+    await message.answer(text, reply_markup=kb.admin_to_menu_kb)
+
+
+# ----------------------------------------------------------------------------------------Управление-------------------------------------------------------------------------------------
+@admin_router.message(F.text == "💼 Управление")
+async def enter_ticket(message: Message):
+    await message.answer(
+        "Отлично, приступим к управлению! Выберите нужное действие:",
+        reply_markup=kb.admin_manage_kb
+    )
+
+
 # ------------------------------------------------------------------------------------Добавление вопросов-------------------------------------------------------------------------------------
 class AddQuestion(StatesGroup):
     enter_ticket_number = State()

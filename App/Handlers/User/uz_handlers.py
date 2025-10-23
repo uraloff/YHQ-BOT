@@ -4,6 +4,7 @@ from datetime import datetime, time, timedelta, timezone
 from aiogram import Router, F, Bot
 from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
+from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery, InputMediaPhoto
 
 from App.Database import requests as rq
@@ -15,13 +16,25 @@ user_question_cache = {}
 
 
 # -----------------------------------------------------------------------------------------Главное меню---------------------------------------------------------------------------------------
+@uz_user_router.message(CommandStart())
 @uz_user_router.message(F.text.in_({'/start', '/user_mode', '/admin', 'Вернуться на главную меню ↩'}))
 @uz_user_router.callback_query(F.data.in_({'uz_main_menu', 'no_pass'}))
 @uz_user_router.callback_query(F.data.startswith("to_main_menu_after_test:"))
 async def uz_main_menu(message: Message | CallbackQuery, bot: Bot, state: FSMContext):
     await state.clear()
     await commands.set_commands(bot, message.from_user.id)
-    await rq.get_or_create_user(telegram_id=message.from_user.id, full_name=message.from_user.full_name, username=message.from_user.username if message.from_user.username else None)
+
+    args = message.text.split(" ") if isinstance(message, Message) else None
+    referral_code = None
+    if len(args) > 1:
+        referral_code = args[1]
+    
+    await rq.get_or_create_user(
+        telegram_id=message.from_user.id,
+        full_name=message.from_user.full_name,
+        username=message.from_user.username,
+        referral_code=referral_code
+    )
     
     tz = timezone(timedelta(hours=5))
     now = datetime.now(tz).time()
