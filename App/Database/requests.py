@@ -1,13 +1,18 @@
 import random
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import select, func, update, delete
 
 from App.Database.models import async_session, User, Question, Ticket, SessionQuestion, TestSession, Answer, Mistake, SavedQuestion, RoadSign, Admin, AdminStatus, BotInfo
 
 
-async def get_or_create_user(telegram_id: int, full_name: str | None = None, username: str | None = None) -> User:
+async def get_or_create_user(
+    telegram_id: int,
+    full_name: str | None = None,
+    username: str | None = None,
+    referral_code: str | None = None
+) -> User:
     async with async_session() as session:
         user = await session.scalar(
             select(User).where(User.telegram_id == telegram_id)
@@ -15,7 +20,12 @@ async def get_or_create_user(telegram_id: int, full_name: str | None = None, use
         if user:
             return user
 
-        user = User(telegram_id=telegram_id, full_name=full_name, username=username)
+        user = User(
+            telegram_id=telegram_id,
+            full_name=full_name,
+            username=username,
+            referral_code=referral_code
+        )
         session.add(user)
         try:
             await session.commit()
@@ -28,6 +38,58 @@ async def get_or_create_user(telegram_id: int, full_name: str | None = None, use
             await session.refresh(user)
 
         return user
+
+
+async def get_all_users():
+    async with async_session() as session:
+        result = await session.scalars(
+            select(User.id)
+        )
+        return result.all()
+    
+
+async def get_users_last_week():
+    now = datetime.now()
+    start_of_week = (now - timedelta(days=now.weekday() + 7)).replace(hour=0, minute=0, second=0, microsecond=0)
+    end_of_week = start_of_week + timedelta(days=6, hours=23, minutes=59, seconds=59)
+
+    async with async_session() as session:
+        result = await session.scalars(
+            select(User.id)
+            .where(User.joined_at >= start_of_week)
+            .where(User.joined_at <= end_of_week)
+        )
+        users = result.all()
+        return len(users)
+
+
+async def get_referral_stats():
+    async with async_session() as session:
+        result = await session.execute(
+            select(User.referral_code, func.count(User.id))
+            .where(User.referral_code.isnot(None))
+            .group_by(User.referral_code)
+        )
+        return result.all()
+
+
+async def get_referral_percentage(referral_code: str) -> int:
+    async with async_session() as session:
+        total_users_result = await session.execute(
+            select(func.count(User.id))
+        )
+        total_users = total_users_result.scalar() or 0
+
+        if total_users == 0:
+            return 0
+
+        referral_users_result = await session.execute(
+            select(func.count(User.id)).where(User.referral_code == referral_code)
+        )
+        referral_users = referral_users_result.scalar() or 0
+
+        percent = round((referral_users / total_users) * 100)
+        return percent
 
 
 async def handle_admin(telegram_id: int, full_name: str | None = None, username: str | None = None, for_confirm: bool = False, for_cancel: bool = False) -> Admin | None:

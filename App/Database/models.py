@@ -45,6 +45,7 @@ class User(Base):
     joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=False), default=lambda: datetime.now().replace(microsecond=0))
     correct_answers: Mapped[int] = mapped_column(Integer, default=0, nullable=True)
     incorrect_answers: Mapped[int] = mapped_column(Integer, default=0, nullable=True)
+    referral_code: Mapped[str] = mapped_column(String(50), nullable=True)
 
     def __repr__(self):
         return f"<User(id={self.id}, telegram_id={self.telegram_id})>"

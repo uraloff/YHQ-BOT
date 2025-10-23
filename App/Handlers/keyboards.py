@@ -216,9 +216,25 @@ def confirm_admin_kb(user_id: int) -> InlineKeyboardMarkup:
 
 
 admin_menu_kb = ReplyKeyboardMarkup(keyboard=[
+        [KeyboardButton(text="📊 Аналитика"),
+         KeyboardButton(text="💼 Управление")]
+    ],
+    resize_keyboard=True
+)
+
+
+admin_manage_kb = ReplyKeyboardMarkup(keyboard=[
+        [KeyboardButton(text="Рассылка")],
         [KeyboardButton(text="Добавить вопрос")],
         [KeyboardButton(text="Добавить дорожный знак")],
         [KeyboardButton(text="Изменить текст /info")]
+    ],
+    resize_keyboard=True
+)
+
+
+admin_analytics_kb = ReplyKeyboardMarkup(keyboard=[
+        [KeyboardButton(text="Рекламный отчет")]
     ],
     resize_keyboard=True
 )
