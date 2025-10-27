@@ -20,22 +20,36 @@ user_question_cache = {}
 @uz_user_router.message(F.text.in_({'/start', '/user_mode', '/admin', 'Вернуться на главную меню ↩'}))
 @uz_user_router.callback_query(F.data.in_({'uz_main_menu', 'no_pass'}))
 @uz_user_router.callback_query(F.data.startswith("to_main_menu_after_test:"))
-async def uz_main_menu(message: Message | CallbackQuery, bot: Bot, state: FSMContext):
+async def uz_main_menu(event: Message | CallbackQuery, bot: Bot, state: FSMContext):
     await state.clear()
-    await commands.set_commands(bot, message.from_user.id)
+    await commands.set_commands(bot, event.from_user.id)
 
-    args = message.text.split(" ") if isinstance(message, Message) else None
-    referral_code = None
-    if len(args) > 1:
-        referral_code = args[1]
-    
-    await rq.get_or_create_user(
-        telegram_id=message.from_user.id,
-        full_name=message.from_user.full_name,
-        username=message.from_user.username,
-        referral_code=referral_code
-    )
-    
+    if isinstance(event, Message):
+        message = event
+        referral_code = None
+        args = message.text.split(" ")
+        if len(args) > 1:
+            referral_code = args[1]
+
+        await rq.get_or_create_user(
+            telegram_id=message.from_user.id,
+            full_name=message.from_user.full_name,
+            username=message.from_user.username,
+            referral_code=referral_code
+        )
+
+    else:  # CallbackQuery
+        query = event
+        message = query.message
+        data = query.data
+        await query.answer()
+
+        if data.startswith('to_main_menu_after_test:'):
+            session_id = int(data.split(":")[1])
+            session_data = await rq.get_test_session(session_id)
+            if session_data.ended_at is None:
+                await rq.end_session(session_id, query.from_user.id)
+
     tz = timezone(timedelta(hours=5))
     now = datetime.now(tz).time()
 
@@ -47,14 +61,17 @@ async def uz_main_menu(message: Message | CallbackQuery, bot: Bot, state: FSMCon
         greeting = "👋 Добрый день"
     else:
         greeting = "👋 Добрый вечер"
-    
-    if isinstance(message, Message):
-        if ((message.from_user.id == int(getenv('ADMIN_ID')) or await rq.check_confirmed_admin(message.from_user.id)) and (message.text == '/admin' or message.text == 'Вернуться на главную меню ↩')) and not message.text == '/user_mode':
+
+    if isinstance(event, Message):
+        user_id = message.from_user.id
+        is_admin = user_id == int(getenv('ADMIN_ID')) or await rq.check_confirmed_admin(user_id)
+
+        if is_admin and message.text in {'/admin', 'Вернуться на главную меню ↩'} and message.text != '/user_mode':
             await message.answer(
                 f"{greeting}, <b>{message.from_user.full_name}</b>!",
                 reply_markup=kb.admin_menu_kb
             )
-        elif (message.from_user.id != int(getenv('ADMIN_ID')) and not await rq.check_confirmed_admin(message.from_user.id)) and message.text == '/admin':
+        elif not is_admin and message.text == '/admin':
             await message.answer(
                 "Siz admin emassiz ❌",
                 reply_markup=kb.uz_to_main_menu_kb
@@ -63,31 +80,24 @@ async def uz_main_menu(message: Message | CallbackQuery, bot: Bot, state: FSMCon
             await message.answer(
                 f"👋 Salom, <b>{message.from_user.full_name}</b>! "
                 f"Bu bot orqali siz haydovchilik guvohnomasini olish uchun test imtihonlarini yechib tayyorgarlik ko'rishingiz mumkin.\n\n"
-                f"👇 Quyidagi kerakli bo'limlarni tanlab hozirdanoq tayyorgarlikni boshlashingiz mumkin",
+                f"👇 Quyidagi kerakli bo'limlarni tanлаб hozirdanoq tayyorgarlikni boshlashingiz mumkin",
                 reply_markup=kb.uz_main_menu_kb
             )
+
     else:
-        if message.data.startswith('to_main_menu_after_test:'):
-            session_id = message.data.split(":")[1]
-            session_data = await rq.get_test_session(int(session_id))
-            session_has_not_ended = session_data.ended_at is None
-            if session_has_not_ended:
-                await rq.end_session(int(session_id), message.from_user.id)
         try:
-            await message.answer()
-            await message.message.edit_text(
+            await message.edit_text(
                 f"<b>🏠 Asosiy menyu\n\n</b>"
-                f"👇 Quyidagi kerakli bo'limlarni tanlab hozirdanoq tayyorgarlikni boshlashingiz mumkin",
+                f"👇 Quyidagi kerakli bo'limlarni tanлаб hozirdanoq tayyorgarlikni boshlashingiz mumkin",
                 reply_markup=kb.uz_main_menu_kb
             )
         except Exception:
-            await message.message.delete()
-            await message.message.answer(
+            await message.delete()
+            await query.message.answer(
                 f"<b>🏠 Asosiy menyu\n\n</b>"
-                f"👇 Quyidagi kerakli bo'limlarni tanlab hozirdanoq tayyorgarlikni boshlashingiz mumkin",
+                f"👇 Quyidagi kerakли bo'лимларни танлаб ҳозирданоқ тайёргарликни бошлашингиз мумкин",
                 reply_markup=kb.uz_main_menu_kb
             )
-            await message.answer()
 
 
 # ---------------------------------------------------------------------------------Экзамен----------------------------------------------------------------------------------------------------
