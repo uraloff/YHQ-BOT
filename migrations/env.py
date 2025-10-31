@@ -20,7 +20,7 @@ if database_url and database_url.startswith("postgres://"):
 
 # 3️⃣ Устанавливаем URL для Alembic
 if database_url:
-    config.set_main_option("sqlalchemy.url", database_url)
+    config.set_main_option("sqlalchemy.url", database_url + "?async_fallback=True")
 else:
     raise RuntimeError("❌ DATABASE_URL / DB_URL не найдена в окружении!")
 
