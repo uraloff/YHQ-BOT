@@ -103,6 +103,41 @@ async def enter_ticket(message: Message):
     )
 
 
+# -----------------------------------------------------------------------------------------Рассылка------------------------------------------------------------------------------------------
+class MailingState(StatesGroup):
+    entering_mailing_text = State()
+
+
+@admin_router.message(F.text == "Рассылка")
+async def mailing(message: Message, state: FSMContext):
+    await message.answer(
+        "✍️ Введите текст для отправки рассылки:",
+        reply_markup=kb.admin_to_menu_kb
+    )
+    await state.set_state(MailingState.entering_mailing_text)
+
+
+@admin_router.message(MailingState.entering_mailing_text)
+async def enter_mailing_text(message: Message, state: FSMContext):
+    text = message.text.strip()
+    admin_id = int(getenv('ADMIN_ID'))
+    users = await rq.get_all_users()
+    success, failed = 0, 0
+    
+    for user in users:
+        try:
+            if int(user) == admin_id:
+                continue
+            await message.bot.send_message(user, text)
+            success += 1
+        except Exception:
+            failed += 1
+            
+    await message.answer(
+        f"✅ Рассылка отправлена!\n\n📬 Успешные: {success}\n❌ Неуспешные: {failed}",
+        reply_markup=kb.admin_to_menu_kb
+    )
+    await state.clear()
 # ------------------------------------------------------------------------------------Добавление вопросов-------------------------------------------------------------------------------------
 class AddQuestion(StatesGroup):
     enter_ticket_number = State()

@@ -43,7 +43,7 @@ async def get_or_create_user(
 async def get_all_users():
     async with async_session() as session:
         result = await session.scalars(
-            select(User.id)
+            select(User.telegram_id)
         )
         return result.all()
     
