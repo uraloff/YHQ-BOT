@@ -11,18 +11,14 @@ config = context.config
 # ==============================================
 # ✅ ДИНАМИЧЕСКОЕ ОПРЕДЕЛЕНИЕ DATABASE URL
 # ==============================================
-# 1️⃣ Берём URL из переменной окружения (Heroku, .env, и т.п.)
-database_url = os.getenv("DATABASE_URL") or os.getenv("DB_URL")
+# Берём URL из переменной окружения (Heroku, .env, и т.п.)
+database_url = os.getenv("DB_URL")
 
-# 2️⃣ Исправляем старый формат Heroku (postgres:// → postgresql://)
-if database_url and database_url.startswith("postgres://"):
-    database_url = database_url.replace("postgres://", "postgresql://", 1)
-
-# 3️⃣ Устанавливаем URL для Alembic
+# Устанавливаем URL для Alembic
 if database_url:
     config.set_main_option("sqlalchemy.url", database_url + "?async_fallback=True")
 else:
-    raise RuntimeError("❌ DATABASE_URL / DB_URL не найдена в окружении!")
+    raise RuntimeError("❌ DB_URL не найдена в окружении!")
 
 # ==============================================
 # Настройка логирования и метаданных
