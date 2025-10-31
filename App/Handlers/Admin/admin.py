@@ -89,6 +89,7 @@ async def show_analytics(message: Message):
     for code, count in data:
         percent = await rq.get_referral_percentage(code)
         text += f"{numerate + 1}. <b>{code}:</b> {count} ({percent}%)\n"
+        numerate += 1
 
     await message.answer(text, reply_markup=kb.admin_to_menu_kb)
 
